@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聚合支付在手机App中的运用与用户体验变化</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Noto Sans SC', 'Inter', 'sans-serif'] },
+                    colors: {
+                        wx: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d' },
+                        ali: { 50: '#fff7ed', 100: '#ffedd5', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c' },
+                        primary: { 50: '#eef2ff', 100: '#e0e7ff', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Noto Sans SC', 'Inter', sans-serif; background: #f8fafc; }
+        .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); }
+        .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15); }
+        .expand-content { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .expand-content.open { max-height: 900px; }
+        .tab-active { background: white; color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tab-inactive { background: transparent; color: #64748b; }
+        .tab-inactive:hover { color: #334155; }
+        .flow-arrow { position: relative; }
+        .flow-arrow::after { content: '→'; position: absolute; right: -20px; top: 50%; transform: translateY(-50%); color: #cbd5e1; font-size: 20px; }
+        .flow-arrow:last-child::after { display: none; }
+        .phone-mockup { border: 8px solid #1e293b; border-radius: 32px; overflow: hidden; background: white; position: relative; }
+        .phone-mockup::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 24px; background: #1e293b; border-radius: 0 0 16px 16px; z-index: 10; }
+        .comparison-table th { background: #f1f5f9; font-weight: 600; text-align: left; padding: 12px 16px; border-bottom: 2px solid #e2e8f0; }
+        .comparison-table td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+        .comparison-table tr:hover td { background: #f8fafc; }
+        .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+        .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50">
+
+    <!-- 顶部导航 -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="smartphone" class="w-6 h-6 text-primary-600"></i>
+                <span class="font-bold text-lg text-slate-800">聚合支付 × App 体验报告</span>
+            </div>
+            <div class="hidden md:flex items-center gap-1 text-sm">
+                <a href="#overview" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">概览</a>
+                <a href="#tech" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">技术实现</a>
+                <a href="#experience" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">体验对比</a>
+                <a href="#flow" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">流程</a>
+                <a href="#compare" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">优劣势</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 英雄区 -->
+    <section id="overview" class="pt-28 pb-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-12">
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-full text-sm font-medium mb-6">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    交互式体验报告
+                </div>
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">
+                    聚合支付在 App 中
+                    <span class="gradient-text">如何改变用户支付体验</span>
+                </h1>
+                <p class="text-lg text-slate-500 max-w-2xl mx-auto">
+                    从"单一渠道"到"统一收银台"，聚合支付让 App 支付从"能用"变成"好用"。点击查看技术实现与体验变化的全景对比。
+                </p>
+            </div>
+
+            <!-- 核心结论卡片 -->
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
+                    <div class="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center mb-4">
+                        <i data-lucide="layers" class="w-6 h-6 text-primary-600"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">统一收银台</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        用户不再需要在 App 里看到"微信支付请点这里""支付宝请点那里"的分散入口。聚合支付在 App 内呈现一个<strong>统一的收银台</strong>，用户自己选择支付方式，体验更自然。
+                    </p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
+                    <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mb-4">
+                        <i data-lucide="trending-up" class="w-6 h-6 text-green-600"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">支付成功率提升</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        聚合支付通过<strong>智能路由</strong>自动选择最优通道，并聚合微信、支付宝、银联、云闪付等所有渠道。用户不会因为"不支持我喜欢的支付方式"而流失，转化率实测提升 <strong>5%-25%</strong>。
+                    </p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
+                    <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mb-4">
+                        <i data-lucide="repeat" class="w-6 h-6 text-orange-600"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">0 跳转或原生唤起</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        根据集成方式不同，聚合支付在 App 中可以实现<strong>内嵌 H5 收银台（0 跳转）</strong>或<strong>原生 SDK 唤起</strong>。前者用户不离开 App，后者直接唤起微信/支付宝 App，都比纯 WebView 跳转体验更好。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 技术实现方式 -->
+    <section id="tech" class="py-12 px-4 bg-white border-y border-slate-100">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="code-2" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">聚合支付在 App 中的三种技术实现方式</h2>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- 方式1：聚合SDK -->
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200 card-hover">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
+                            <span class="text-primary-600 font-bold text-sm">1</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold">聚合 SDK 集成</h3>
+                            <span class="tag bg-primary-50 text-primary-700">推荐</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4">
+                        App 集成聚合支付服务商提供的 SDK（如 Ping++、拉卡拉、通联支付控件）。SDK 内部封装了微信、支付宝、银联等所有渠道的原生调用逻辑。
+                    </p>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>用户选择支付方式 → SDK 自动唤起对应 App</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>支付完成后自动返回，结果统一回调</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>开发者只需对接一套 SDK，代码量减少 90%</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-200">
+                        <div class="text-xs text-slate-500 mb-1">适用场景</div>
+                        <div class="text-sm text-slate-700">原生 App（Android/iOS）、Flutter、React Native</div>
+                    </div>
+                </div>
+
+                <!-- 方式2：H5收银台 -->
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200 card-hover">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                            <span class="text-blue-600 font-bold text-sm">2</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold">内嵌 H5 收银台</h3>
+                            <span class="tag bg-blue-50 text-blue-700">WebView/App</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4">
+                        App 内嵌 WebView 加载聚合支付服务商的 H5 收银台页面。用户在整个支付过程中不离开 App，收银台以浮层或全屏页面形式呈现。
+                    </p>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>0 跳转，用户始终在 App 内</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>支持自定义 UI，与 App 品牌风格统一</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-yellow-500"></i>
+                            <span>需处理 WebView 与原生通信（URL Scheme）</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-200">
+                        <div class="text-xs text-slate-500 mb-1">适用场景</div>
+                        <div class="text-sm text-slate-700">混合开发 App（uni-app、Cordova）、轻量级集成</div>
+                    </div>
+                </div>
+
+                <!-- 方式3：服务端路由 -->
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200 card-hover">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                            <span class="text-orange-600 font-bold text-sm">3</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold">服务端路由 + 原生唤起</h3>
+                            <span class="tag bg-orange-50 text-orange-700">自定义</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4">
+                        App 自行实现支付方式选择 UI，点击后调用后端接口。后端通过聚合支付网关路由到对应渠道，返回支付参数，App 再原生唤起微信/支付宝 SDK。
+                    </p>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>UI 完全自定义，灵活性最高</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>后端控制路由策略（费率/成功率优先）</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-yellow-500"></i>
+                            <span>开发量大，需自行维护多渠道 SDK</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-200">
+                        <div class="text-xs text-slate-500 mb-1">适用场景</div>
+                        <div class="text-sm text-slate-700">大型 App（需深度定制 UI 和路由策略）</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 用户体验对比：直接对接 vs 聚合支付 -->
+    <section id="experience" class="py-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="git-compare" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">用户端体验对比：直接对接官方 vs 聚合支付</h2>
+            </div>
+
+            <!-- 切换标签 -->
+            <div class="flex gap-1 bg-slate-100 p-1 rounded-xl mb-6 w-fit">
+                <button onclick="switchExperience('before')" id="exp-tab-before" class="tab-inactive px-4 py-2 rounded-lg text-sm font-medium transition-all">传统方式（直接对接官方）</button>
+                <button onclick="switchExperience('after')" id="exp-tab-after" class="tab-active px-4 py-2 rounded-lg text-sm font-medium transition-all">聚合支付方式</button>
+            </div>
+
+            <!-- 传统方式 -->
+            <div id="exp-before" class="grid md:grid-cols-2 gap-8">
+                <div class="phone-mockup h-[500px] bg-slate-100 flex flex-col">
+                    <div class="pt-10 px-4 pb-4 flex-1 flex flex-col">
+                        <div class="text-center mb-4">
+                            <div class="text-xs text-slate-400">App 商品详情页</div>
+                            <div class="font-bold text-slate-800">确认订单</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 mb-3 shadow-sm">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-12 h-12 bg-slate-200 rounded-lg"></div>
+                                <div>
+                                    <div class="font-medium text-sm">商品名称</div>
+                                    <div class="text-xs text-slate-400">¥199.00</div>
+                                </div>
+                            </div>
+                            <div class="border-t border-slate-100 pt-2 flex justify-between text-sm">
+                                <span class="text-slate-500">实付金额</span>
+                                <span class="font-bold">¥199.00</span>
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-500 mb-2">选择支付方式</div>
+                        <div class="space-y-2">
+                            <div class="bg-white rounded-xl p-3 shadow-sm border-2 border-wx-500 flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-wx-100 flex items-center justify-center">
+                                    <i data-lucide="message-circle" class="w-4 h-4 text-wx-600"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium">微信支付</div>
+                                    <div class="text-xs text-slate-400">推荐使用</div>
+                                </div>
+                                <div class="w-4 h-4 rounded-full border-2 border-wx-500 bg-wx-500"></div>
+                            </div>
+                            <div class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-ali-100 flex items-center justify-center">
+                                    <i data-lucide="shopping-bag" class="w-4 h-4 text-ali-600"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium">支付宝</div>
+                                    <div class="text-xs text-slate-400">切换支付方式</div>
+                                </div>
+                                <div class="w-4 h-4 rounded-full border-2 border-slate-300"></div>
+                            </div>
+                        </div>
+                        <div class="mt-auto">
+                            <div class="bg-slate-800 text-white rounded-xl py-3 text-center text-sm font-medium">确认支付</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                            <i data-lucide="alert-circle" class="w-5 h-5 text-yellow-500"></i>
+                            传统方式的用户体验痛点
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-red-600 text-xs font-bold">1</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-800">支付方式单一</div>
+                                    <div class="text-sm text-slate-500">App 只接入了微信支付，支付宝用户无法使用，直接流失。</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-red-600 text-xs font-bold">2</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-800">开发成本高</div>
+                                    <div class="text-sm text-slate-500">每增加一个支付渠道（微信、支付宝、银联），需要单独对接 SDK、审核资质、维护代码，平均 2-3 周/渠道。</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-red-600 text-xs font-bold">3</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-800">唤起失败率高</div>
+                                    <div class="text-sm text-slate-500">WebView 中直接跳转微信支付，Android/iOS 唤起失败率 > 15%，用户卡在支付页面。</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-red-600 text-xs font-bold">4</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-800">对账困难</div>
+                                    <div class="text-sm text-slate-500">财务需要分别登录微信、支付宝、银联后台，手动汇总 3 份账单。</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 聚合支付方式 -->
+            <div id="exp-after" class="grid md:grid-cols-2 gap-8">
+                <div class="phone-mockup h-[500px] bg-slate-100 flex flex-col">
+                    <div class="pt-10 px-4 pb-4 flex-1 flex flex-col">
+                        <div class="text-center mb-4">
+                            <div class="text-xs text-slate-400">App 商品详情页</div>
+                            <div class="font-bold text-slate-800">确认订单</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 mb-3 shadow-sm">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-12 h-12 bg-slate-200 rounded-lg"></div>
+                                <div>
+                                    <div class="font-medium text-sm">商品名称</div>
+                                    <div class="text-xs text-slate-400">¥199.00</div>
+                                </div>
+                            </div>
+                            <div class="border-t border-slate-100 pt-2 flex justify-between text-sm">
+                                <span class="text-slate-500">实付金额</span>
+                                <span class="font-bold">¥199.00</span>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 shadow-sm border border-primary-200">
+                            <div class="text-xs text-primary-600 font-medium mb-2">聚合收银台</div>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2 p-2 rounded-lg bg-wx-50 border border-wx-200">
+                                    <i data-lucide="message-circle" class="w-4 h-4 text-wx-600"></i>
+                                    <span class="text-sm">微信支付</span>
+                                    <span class="text-xs text-wx-600 bg-wx-100 px-2 py-0.5 rounded-full ml-auto">推荐</span>
+                                </div>
+                                <div class="flex items-center gap-2 p-2 rounded-lg bg-ali-50 border border-ali-200">
+                                    <i data-lucide="shopping-bag" class="w-4 h-4 text-ali-600"></i>
+                                    <span class="text-sm">支付宝</span>
+                                </div>
+                                <div class="flex items-center gap-2 p-2 rounded-lg bg-blue-50 border border-blue-200">
+                                    <i data-lucide="credit-card" class="w-4 h-4 text-blue-600"></i>
+                                    <span class="text-sm">银行卡快捷</span>
+                                </div>
+                                <div class="flex items-center gap-2 p-2 rounded-lg bg-purple-50 border border-purple-200">
+                                    <i data-lucide="wallet" class="w-4 h-4 text-purple-600"></i>
+                                    <span class="text-sm">云闪付</span>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-xs text-slate-400 text-center">上次使用：微信支付</div>
+                        </div>
+                        <div class="mt-auto">
+                            <div class="bg-primary-600 text-white rounded-xl py-3 text-center text-sm font-medium">确认支付</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-5 h-5 text-green-500"></i>
+                            聚合支付带来的体验升级
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-green-600 text-xs font-bold">1</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-800">一个收银台，全渠道通吃</div>
+                                    <div class="text-sm text-slate-500">用户在一个界面里看到微信、支付宝、银行卡、云闪付等所有选项，想用哪个点哪个。不会因为不支持而流失。</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-green-600 text-xs font-bold">2</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-800">智能推荐 + 记住偏好</div>
+                                    <div class="text-sm text-slate-500">收银台自动记住用户上次使用的支付方式并置顶推荐，减少选择成本。</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-green-600 text-xs font-bold">3</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-800">唤起成功率 > 99%</div>
+                                    <div class="text-sm text-slate-500">聚合 SDK 经过充分适配，处理了大量机型兼容性问题和唤起逻辑，失败率极低。</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-green-600 text-xs font-bold">4</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-800">支付优惠自动聚合</div>
+                                    <div class="text-sm text-slate-500">收银台可显示各渠道的优惠活动（如"云闪付满20减5"），自动帮用户选择最划算的方式。</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-green-600 text-xs font-bold">5</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-800">退款原路返回，无需记忆</div>
+                                    <div class="text-sm text-slate-500">不管用户用哪种方式支付，退款自动原路返回，无需用户告诉商家"我上次用微信付的"。</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 支付流程对比 -->
+    <section id="flow" class="py-12 px-4 bg-white border-y border-slate-100">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="route" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">支付流程对比：直接对接 vs 聚合支付</h2>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- 直接对接流程 -->
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                    <h3 class="font-bold mb-4 flex items-center gap-2">
+                        <span class="tag bg-red-50 text-red-600">传统方式</span>
+                        直接对接微信支付（举例）
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">1</div>
+                            <div class="text-sm">用户点击"微信支付"</div>
+                        </div>
+                        <div class="ml-4 border-l-2 border-slate-200 pl-4">
+                            <div class="text-xs text-slate-400 mb-2">App 内</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-wx-100 flex items-center justify-center text-xs font-bold text-wx-600">2</div>
+                            <div class="text-sm">App 调用微信 SDK → 唤起微信</div>
+                        </div>
+                        <div class="ml-4 border-l-2 border-slate-200 pl-4">
+                            <div class="text-xs text-slate-400 mb-2">系统跳转</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-wx-100 flex items-center justify-center text-xs font-bold text-wx-600">3</div>
+                            <div class="text-sm">用户在微信内输入密码</div>
+                        </div>
+                        <div class="ml-4 border-l-2 border-slate-200 pl-4">
+                            <div class="text-xs text-slate-400 mb-2">微信 App 内</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">4</div>
+                            <div class="text-sm">支付完成 → 返回 App</div>
+                        </div>
+                        <div class="ml-4 border-l-2 border-slate-200 pl-4">
+                            <div class="text-xs text-slate-400 mb-2">系统跳转</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">5</div>
+                            <div class="text-sm">App 展示支付结果</div>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 bg-red-50 rounded-lg border border-red-100">
+                        <div class="text-xs text-red-700">
+                            <strong>问题：</strong>如果用户想用支付宝，需要 App 单独再开发一个入口。支付结果需要分别处理微信回调、支付宝回调。
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 聚合支付流程 -->
+                <div class="bg-slate-50 rounded-2xl p-6 border border-primary-200">
+                    <h3 class="font-bold mb-4 flex items-center gap-2">
+                        <span class="tag bg-primary-50 text-primary-700">聚合支付</span>
+                        统一收银台（SDK 方式）
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600">1</div>
+                            <div class="text-sm">用户点击"确认支付"</div>
+                        </div>
+                        <div class="ml-4 border-l-2 border-primary-200 pl-4">
+                            <div class="text-xs text-primary-400 mb-2">App 内</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600">2</div>
+                            <div class="text-sm">唤起聚合收银台（SDK 浮层/全屏）</div>
+                        </div>
+                        <div class="ml-4 border-l-2 border-primary-200 pl-4">
+                            <div class="text-xs text-primary-400 mb-2">App 内嵌 / SDK 提供</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600">3</div>
+                            <div class="text-sm">用户选择支付方式（微信/支付宝/银联）</div>
+                        </div>
+                        <div class="ml-4 border-l-2 border-primary-200 pl-4">
+                            <div class="text-xs text-primary-400 mb-2">用户自主选择</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600">4</div>
+                            <div class="text-sm">SDK 自动唤起对应 App（微信/支付宝）</div>
+                        </div>
+                        <div class="ml-4 border-l-2 border-primary-200 pl-4">
+                            <div class="text-xs text-primary-400 mb-2">系统跳转</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600">5</div>
+                            <div class="text-sm">支付完成 → 自动返回 App</div>
+                        </div>
+                        <div class="ml-4 border-l-2 border-primary-200 pl-4">
+                            <div class="text-xs text-primary-400 mb-2">SDK 统一处理回调</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600">6</div>
+                            <div class="text-sm">App 展示统一支付结果</div>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-100">
+                        <div class="text-xs text-green-700">
+                            <strong>优势：</strong>用户始终在一个流程里，选择更自由。开发者只需处理一套回调，无论用户选什么支付方式。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 不同场景下的体验差异 -->
+    <section class="py-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="layout-grid" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">不同场景下的聚合支付体验差异</h2>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 card-hover">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mb-3">
+                        <i data-lucide="smartphone" class="w-5 h-5 text-blue-600"></i>
+                    </div>
+                    <h3 class="font-bold mb-2">原生 App（SDK）</h3>
+                    <div class="text-sm text-slate-600 space-y-1">
+                        <p><strong>体验：</strong>最佳</p>
+                        <p>SDK 直接唤起微信/支付宝 App，支付完成后自动返回，结果统一回调。</p>
+                    </div>
+                    <div class="mt-3 text-xs text-slate-400">
+                        代表：Ping++、拉卡拉 SDK、通联支付控件
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 card-hover">
+                    <div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center mb-3">
+                        <i data-lucide="layers" class="w-5 h-5 text-purple-600"></i>
+                    </div>
+                    <h3 class="font-bold mb-2">混合 App（WebView）</h3>
+                    <div class="text-sm text-slate-600 space-y-1">
+                        <p><strong>体验：</strong>良好</p>
+                        <p>H5 收银台内嵌在 WebView 中，用户不离开 App。需拦截 URL Scheme 唤起支付。</p>
+                    </div>
+                    <div class="mt-3 text-xs text-slate-400">
+                        代表：uni-app、Cordova、Flutter WebView
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 card-hover">
+                    <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center mb-3">
+                        <i data-lucide="message-circle" class="w-5 h-5 text-green-600"></i>
+                    </div>
+                    <h3 class="font-bold mb-2">微信小程序</h3>
+                    <div class="text-sm text-slate-600 space-y-1">
+                        <p><strong>体验：</strong>优秀</p>
+                        <p>半屏唤起聚合收银台，支持微信支付 + 云闪付（甚至支付宝 H5）。用户无需跳转。</p>
+                    </div>
+                    <div class="mt-3 text-xs text-slate-400">
+                        代表：拉卡拉聚合收银台、收钱吧
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 card-hover">
+                    <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center mb-3">
+                        <i data-lucide="globe" class="w-5 h-5 text-orange-600"></i>
+                    </div>
+                    <h3 class="font-bold mb-2">H5 网页</h3>
+                    <div class="text-sm text-slate-600 space-y-1">
+                        <p><strong>体验：</strong>中等</p>
+                        <p>浏览器中打开聚合收银台，用户选择后跳转微信/支付宝 H5 支付页。需处理返回逻辑。</p>
+                    </div>
+                    <div class="mt-3 text-xs text-slate-400">
+                        代表：YunGouOS 云支付、星益云收银台
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 优劣势对比 -->
+    <section id="compare" class="py-12 px-4 bg-white border-y border-slate-100">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="scale" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">聚合支付在 App 中的优劣势全景对比</h2>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="comparison-table w-full text-sm">
+                    <thead>
+                        <tr>
+                            <th>对比维度</th>
+                            <th>直接对接官方（微信+支付宝）</th>
+                            <th>聚合支付（SDK/H5 收银台）</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-medium">用户支付入口</td>
+                            <td>分散的多个按钮（微信支付、支付宝支付）</td>
+                            <td class="text-green-600 font-medium">统一收银台，一个入口</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">支付方式选择</td>
+                            <td>用户被动接受 App 提供的渠道</td>
+                            <td class="text-green-600 font-medium">用户主动选择，自由度高</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">唤起支付</td>
+                            <td>App 直接唤起对应 SDK</td>
+                            <td>SDK 自动路由唤起，成功率更高</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">支付失败率</td>
+                            <td>WebView 唤起失败率 > 15%</td>
+                            <td class="text-green-600 font-medium">SDK 优化后 < 1%</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">支付完成返回</td>
+                            <td>需单独处理每个渠道的返回逻辑</td>
+                            <td class="text-green-600 font-medium">统一回调，自动处理</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">支付优惠感知</td>
+                            <td>无，用户自行对比各渠道优惠</td>
+                            <td class="text-green-600 font-medium">收银台自动展示最优渠道优惠</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">开发成本</td>
+                            <td>高（2-3 周/渠道，分别维护）</td>
+                            <td class="text-green-600 font-medium">低（3 天接入，一套代码）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">渠道扩展</td>
+                            <td>每新增渠道需重新开发</td>
+                            <td class="text-green-600 font-medium">后台配置即生效，0 代码</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">对账体验</td>
+                            <td>分别登录多个后台手动汇总</td>
+                            <td class="text-green-600 font-medium">统一后台，统一报表</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">费率</td>
+                            <td>官方标准费率（0.6%）</td>
+                            <td>可能更低（0.38%）或更高（加服务费）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">高级功能</td>
+                            <td class="text-green-600 font-medium">最全（分账、红包、营销工具）</td>
+                            <td>有限（部分平台不支持或滞后）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">合规风险</td>
+                            <td class="text-green-600 font-medium">最低（官方直连）</td>
+                            <td>需注意（避免"二清"平台）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">用户学习成本</td>
+                            <td>高（不同 App 支付方式位置不同）</td>
+                            <td class="text-green-600 font-medium">低（统一收银台，习惯养成快）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">退款体验</td>
+                            <td>需记忆支付方式，分别处理</td>
+                            <td class="text-green-600 font-medium">统一入口，原路自动退回</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- 总结 -->
+    <section class="py-12 px-4 bg-slate-900 text-white">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                        <i data-lucide="target" class="w-5 h-5 text-primary-400"></i>
+                        核心结论
+                    </h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        聚合支付在 App 中的核心价值是<strong>"统一收银台"</strong>：用户不再被 App 接入的支付渠道数量限制，而是可以在一个界面里自由选择所有主流支付方式。对开发者来说，一套 SDK 替代了 N 套官方 SDK。
+                    </p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                        <i data-lucide="lightbulb" class="w-5 h-5 text-yellow-400"></i>
+                        体验变化要点
+                    </h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        1. <strong>从被动到主动</strong>：用户不再被 App 限制，而是自主选择<br>
+                        2. <strong>从分散到统一</strong>：一个收银台替代多个支付按钮<br>
+                        3. <strong>从复杂到简单</strong>：智能推荐 + 记住偏好，减少选择成本<br>
+                        4. <strong>从低效到高效</strong>：唤起成功率提升，退款原路返回
+                    </p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                        <i data-lucide="bookmark" class="w-5 h-5 text-green-400"></i>
+                        选型建议
+                    </h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        <strong>原生 App</strong>：选聚合 SDK（Ping++、拉卡拉、通联）<br>
+                        <strong>混合 App</strong>：选 H5 收银台内嵌（YunGouOS）<br>
+                        <strong>小程序</strong>：选聚合收银台半屏唤起<br>
+                        <strong>关键原则</strong>：资金必须官方直达，避免二清
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // 初始化 Lucide icons
+        lucide.createIcons();
+
+        // 体验对比切换
+        function switchExperience(type) {
+            if (type === 'before') {
+                document.getElementById('exp-before').style.display = 'grid';
+                document.getElementById('exp-after').style.display = 'none';
+                document.getElementById('exp-tab-before').classList.remove('tab-inactive');
+                document.getElementById('exp-tab-before').classList.add('tab-active');
+                document.getElementById('exp-tab-after').classList.remove('tab-active');
+                document.getElementById('exp-tab-after').classList.add('tab-inactive');
+            } else {
+                document.getElementById('exp-before').style.display = 'none';
+                document.getElementById('exp-after').style.display = 'grid';
+                document.getElementById('exp-tab-after').classList.remove('tab-inactive');
+                document.getElementById('exp-tab-after').classList.add('tab-active');
+                document.getElementById('exp-tab-before').classList.remove('tab-active');
+                document.getElementById('exp-tab-before').classList.add('tab-inactive');
+            }
+        }
+
+        // 默认显示聚合支付
+        switchExperience('after');
+    </script>
+</body>
+</html>

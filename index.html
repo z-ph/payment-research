@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>支付方案调研报告 - 在线目录</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .glass-card { background: rgba(255,255,255,0.92); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.3); }
+        .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-6px); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+    <div class="max-w-4xl w-full">
+        <div class="text-center mb-10">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-full text-sm font-medium mb-4 backdrop-blur-sm">
+                <i data-lucide="zap" class="w-4 h-4"></i>
+                交互式调研报告
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-3">支付方案调研报告</h1>
+            <p class="text-white/80 text-lg">点击任意报告即可打开交互式页面</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-5">
+            <a href="./支付方案全景图.html" class="glass-card rounded-2xl p-6 card-hover block">
+                <div class="flex items-center gap-4 mb-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg">
+                        <i data-lucide="credit-card" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-lg text-slate-800">App WebView 支付对接全景图</h2>
+                        <span class="text-xs text-slate-400">微信支付 · 支付宝支付</span>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600 leading-relaxed">6 种支付方式对比、流程可视化、交互式选型决策树、避坑指南、代码速查。</p>
+                <div class="mt-4 flex items-center gap-2 text-sm text-indigo-600 font-medium">
+                    <span>点击查看</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </div>
+            </a>
+
+            <a href="./聚合支付服务商深度调研.html" class="glass-card rounded-2xl p-6 card-hover block">
+                <div class="flex items-center gap-4 mb-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center shadow-lg">
+                        <i data-lucide="layers" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-lg text-slate-800">聚合支付服务商深度调研</h2>
+                        <span class="text-xs text-slate-400">第四方支付 · 费率对比</span>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600 leading-relaxed">聚合支付定义、10 家服务商对比、合规红线（二清风险）、选型建议。</p>
+                <div class="mt-4 flex items-center gap-2 text-sm text-indigo-600 font-medium">
+                    <span>点击查看</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </div>
+            </a>
+
+            <a href="./聚合支付在App中的运用与体验变化.html" class="glass-card rounded-2xl p-6 card-hover block">
+                <div class="flex items-center gap-4 mb-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-lg">
+                        <i data-lucide="smartphone" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-lg text-slate-800">聚合支付在 App 中的运用</h2>
+                        <span class="text-xs text-slate-400">用户体验 · 技术实现</span>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600 leading-relaxed">3 种技术实现方式、用户端体验对比、手机 Mockup 流程可视化、优劣势全景。</p>
+                <div class="mt-4 flex items-center gap-2 text-sm text-indigo-600 font-medium">
+                    <span>点击查看</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </div>
+            </a>
+
+            <a href="./payment-recommendation.html" class="glass-card rounded-2xl p-6 card-hover block">
+                <div class="flex items-center gap-4 mb-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center shadow-lg">
+                        <i data-lucide="award" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-lg text-slate-800">权威第三方聚合支付平台推荐</h2>
+                        <span class="text-xs text-slate-400">国家队 · 上市公司 · 持牌机构</span>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600 leading-relaxed">三层分级推荐（国家队/上市公司/持牌机构/技术型）、全平台对比表、按场景选型、4个权威判断标准。</p>
+                <div class="mt-4 flex items-center gap-2 text-sm text-indigo-600 font-medium">
+                    <span>点击查看</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </div>
+            </a>
+
+            <a href="./百家云-Ionic视频全屏与屏幕锁定技术调研报告.html" class="glass-card rounded-2xl p-6 card-hover block">
+                <div class="flex items-center gap-4 mb-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center shadow-lg">
+                        <i data-lucide="file-text" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-lg text-slate-800">其他技术调研报告</h2>
+                        <span class="text-xs text-slate-400">历史报告</span>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600 leading-relaxed">其他已生成的交互式技术调研报告。</p>
+                <div class="mt-4 flex items-center gap-2 text-sm text-indigo-600 font-medium">
+                    <span>点击查看</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </div>
+            </a>
+        </div>
+
+        <div class="mt-8 text-center">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 text-white/60 rounded-full text-xs">
+                <i data-lucide="globe" class="w-3 h-3"></i>
+                本地服务运行中 · 仅在当前设备可访问
+            </div>
+        </div>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

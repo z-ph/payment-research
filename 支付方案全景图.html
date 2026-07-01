@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App WebView 支付对接方案全景图</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans SC', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        wx: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d' },
+                        ali: { 50: '#fff7ed', 100: '#ffedd5', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c' },
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        success: '#10b981',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Noto Sans SC', 'Inter', sans-serif; background: #f8fafc; }
+        .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); }
+        .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15); }
+        .flow-step { position: relative; }
+        .flow-step::after {
+            content: ''; position: absolute; right: -24px; top: 50%; transform: translateY(-50%);
+            width: 0; height: 0; border-left: 12px solid #cbd5e1; border-top: 8px solid transparent; border-bottom: 8px solid transparent;
+        }
+        .flow-step:last-child::after { display: none; }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+        }
+        .pulse-wx { animation: pulse-glow 2s infinite; }
+        @keyframes pulse-glow-ali {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(249, 115, 22, 0); }
+        }
+        .pulse-ali { animation: pulse-glow-ali 2s infinite; }
+        .expand-content { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .expand-content.open { max-height: 800px; }
+        .tab-active { background: white; color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tab-inactive { background: transparent; color: #64748b; }
+        .tab-inactive:hover { color: #334155; }
+        .decision-node { cursor: pointer; transition: all 0.2s; }
+        .decision-node:hover { transform: scale(1.02); }
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+        .code-block { font-family: 'Menlo', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.6; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .gradient-wx { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .gradient-ali { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50">
+
+    <!-- 顶部导航 -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="credit-card" class="w-6 h-6 text-indigo-600"></i>
+                <span class="font-bold text-lg text-slate-800">支付方案全景图</span>
+            </div>
+            <div class="hidden md:flex items-center gap-1 text-sm">
+                <a href="#overview" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">概览</a>
+                <a href="#compare" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">对比</a>
+                <a href="#flow" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">流程</a>
+                <a href="#decision" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">选型</a>
+                <a href="#pitfalls" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">避坑</a>
+                <a href="#code" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">代码</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 英雄区 -->
+    <section id="overview" class="pt-28 pb-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-12">
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium mb-6">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    交互式调研报告
+                </div>
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">
+                    普通 App 通过 WebView 对接
+                    <span class="gradient-text">微信 / 支付宝</span>
+                </h1>
+                <p class="text-lg text-slate-500 max-w-2xl mx-auto">
+                    一套完整的支付方案对比、流程可视化、选型决策树与避坑指南。点击任意卡片展开详情。
+                </p>
+            </div>
+
+            <!-- 核心结论卡片 -->
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-wx-100 flex items-center justify-center">
+                            <i data-lucide="message-circle" class="w-5 h-5 text-wx-600"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">微信支付</h3>
+                        <span class="badge bg-red-50 text-red-600 ml-auto"><i data-lucide="alert-triangle" class="w-3 h-3"></i> 限制最多</span>
+                    </div>
+                    <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                        <strong class="text-red-600">官方明确不支持</strong>在 App WebView 中使用 H5 支付。iOS 支付完成后会跳转到外部浏览器，体验极差。App 场景应使用原生 SDK 的「APP 支付」。
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="badge bg-slate-100 text-slate-600">H5支付 ❌ App内</span>
+                        <span class="badge bg-wx-50 text-wx-700">JSAPI ❌ 普通浏览器</span>
+                        <span class="badge bg-wx-50 text-wx-700">APP支付 ✅ 推荐</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-ali-100 flex items-center justify-center">
+                            <i data-lucide="shopping-bag" class="w-5 h-5 text-ali-600"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">支付宝</h3>
+                        <span class="badge bg-green-50 text-green-600 ml-auto"><i data-lucide="check-circle" class="w-3 h-3"></i> 相对友好</span>
+                    </div>
+                    <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                        手机网站支付（Wap）在 App WebView 中<strong class="text-green-600">可以正常工作</strong>，但需拦截 <code>alipays://</code> 协议唤起支付宝 App。未安装时引导下载（新商户不再支持网页版）。
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="badge bg-ali-50 text-ali-700">手机网站支付 ✅</span>
+                        <span class="badge bg-red-50 text-red-600">微信浏览器 ❌</span>
+                        <span class="badge bg-ali-50 text-ali-700">APP支付 ✅ 推荐</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 方案对比 -->
+    <section id="compare" class="py-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="scale" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">六种支付方式全景对比</h2>
+            </div>
+
+            <!-- 标签切换 -->
+            <div class="flex gap-1 bg-slate-100 p-1 rounded-xl mb-6 w-fit">
+                <button onclick="switchTab('all')" id="tab-all" class="tab-active px-4 py-2 rounded-lg text-sm font-medium transition-all">全部</button>
+                <button onclick="switchTab('wx')" id="tab-wx" class="tab-inactive px-4 py-2 rounded-lg text-sm font-medium transition-all">微信支付</button>
+                <button onclick="switchTab('ali')" id="tab-ali" class="tab-inactive px-4 py-2 rounded-lg text-sm font-medium transition-all">支付宝</button>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4" id="compare-grid">
+                <!-- 微信 H5 支付 -->
+                <div class="compare-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-type="wx">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-wx-100 flex items-center justify-center">
+                                    <i data-lucide="globe" class="w-4 h-4 text-wx-600"></i>
+                                </div>
+                                <span class="font-semibold">微信 H5 支付</span>
+                            </div>
+                            <span class="badge bg-wx-50 text-wx-700">MWEB</span>
+                        </div>
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="smartphone" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">普通浏览器</span>
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 ml-auto"></i>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="message-circle" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">微信内浏览器</span>
+                                <i data-lucide="x-circle" class="w-4 h-4 text-slate-300 ml-auto"></i>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="app-window" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">App WebView</span>
+                                <span class="badge bg-red-50 text-red-600 text-xs ml-auto">不推荐</span>
+                            </div>
+                        </div>
+                        <button onclick="toggleDetail('wx-h5')" class="w-full py-2 text-sm text-wx-600 font-medium hover:bg-wx-50 rounded-lg transition-colors flex items-center justify-center gap-1">
+                            <span>查看详情</span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform" id="icon-wx-h5"></i>
+                        </button>
+                    </div>
+                    <div id="detail-wx-h5" class="expand-content bg-slate-50 border-t border-slate-100">
+                        <div class="p-5 text-sm text-slate-600 space-y-3">
+                            <p><strong class="text-slate-800">适用场景：</strong>用户在普通手机浏览器（Chrome、Safari、UC）中打开商户 H5 页面，唤起微信支付。</p>
+                            <p><strong class="text-slate-800">申请条件：</strong>企业/个体户 + ICP 备案 + 微信支付商户号开通 H5 产品。</p>
+                            <p><strong class="text-slate-800">技术流程：</strong>后端统一下单（trade_type=MWEB）→ 返回 mweb_url → 前端拼接 redirect_url 跳转 → 用户在微信内确认支付 → 完成后跳回。</p>
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-yellow-800">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-1"></i>
+                                <strong>关键限制：</strong>支付链接有效期仅 5 分钟；referer 必须正确设置；iOS 支付后无法回跳 App。
+                            </div>
+                            <p class="pt-1"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-wx-600 hover:text-wx-700 font-medium underline underline-offset-2">→ 查看微信支付 H5 支付官方文档 ↗</a></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 微信 JSAPI 支付 -->
+                <div class="compare-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-type="wx">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-wx-100 flex items-center justify-center">
+                                    <i data-lucide="code" class="w-4 h-4 text-wx-600"></i>
+                                </div>
+                                <span class="font-semibold">微信 JSAPI 支付</span>
+                            </div>
+                            <span class="badge bg-wx-50 text-wx-700">JSAPI</span>
+                        </div>
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="smartphone" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">普通浏览器</span>
+                                <i data-lucide="x-circle" class="w-4 h-4 text-red-400 ml-auto"></i>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="message-circle" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">微信内浏览器</span>
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 ml-auto"></i>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="app-window" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">App WebView</span>
+                                <i data-lucide="x-circle" class="w-4 h-4 text-red-400 ml-auto"></i>
+                            </div>
+                        </div>
+                        <button onclick="toggleDetail('wx-jsapi')" class="w-full py-2 text-sm text-wx-600 font-medium hover:bg-wx-50 rounded-lg transition-colors flex items-center justify-center gap-1">
+                            <span>查看详情</span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform" id="icon-wx-jsapi"></i>
+                        </button>
+                    </div>
+                    <div id="detail-wx-jsapi" class="expand-content bg-slate-50 border-t border-slate-100">
+                        <div class="p-5 text-sm text-slate-600 space-y-3">
+                            <p><strong class="text-slate-800">适用场景：</strong>用户在微信内置浏览器（公众号 H5 页面）中完成支付。</p>
+                            <p><strong class="text-slate-800">必需条件：</strong>需获取用户 openid（需微信授权）；需配置 JS 接口安全域名；需要公众号认证。</p>
+                            <p><strong class="text-slate-800">技术流程：</strong>获取 openid → 后端统一下单（trade_type=JSAPI）→ 前端 wx.config 注入权限 → 调用 wx.chooseWXPay 或 WeixinJSBridge.invoke。</p>
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-800">
+                                <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
+                                与 H5 支付的核心区别：JSAPI 必须在微信内使用，且必须传 openid。
+                            </div>
+                            <p class="pt-1"><a href="https://pay.weixin.qq.com/doc/v3/partner/4012069855" target="_blank" class="text-wx-600 hover:text-wx-700 font-medium underline underline-offset-2">→ 查看微信支付 JSAPI 支付官方文档 ↗</a></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 微信 Native 支付 -->
+                <div class="compare-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-type="wx">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-wx-100 flex items-center justify-center">
+                                    <i data-lucide="qr-code" class="w-4 h-4 text-wx-600"></i>
+                                </div>
+                                <span class="font-semibold">微信 Native 支付</span>
+                            </div>
+                            <span class="badge bg-wx-50 text-wx-700">NATIVE</span>
+                        </div>
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="smartphone" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">普通浏览器</span>
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 ml-auto"></i>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="message-circle" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">微信内浏览器</span>
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 ml-auto"></i>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="app-window" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">App WebView</span>
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 ml-auto"></i>
+                            </div>
+                        </div>
+                        <button onclick="toggleDetail('wx-native')" class="w-full py-2 text-sm text-wx-600 font-medium hover:bg-wx-50 rounded-lg transition-colors flex items-center justify-center gap-1">
+                            <span>查看详情</span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform" id="icon-wx-native"></i>
+                        </button>
+                    </div>
+                    <div id="detail-wx-native" class="expand-content bg-slate-50 border-t border-slate-100">
+                        <div class="p-5 text-sm text-slate-600 space-y-3">
+                            <p><strong class="text-slate-800">适用场景：</strong>所有环境通用，用户通过扫描二维码完成支付。</p>
+                            <p><strong class="text-slate-800">技术流程：</strong>后端统一下单（trade_type=NATIVE）→ 返回 code_url → 前端生成二维码 → 用户微信扫一扫 → 完成支付。</p>
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-yellow-800">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-1"></i>
+                                用户体验一般：移动端需要用户切换 App 扫码，多一步操作。
+                            </div>
+                            <p class="pt-1"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012790523" target="_blank" class="text-wx-600 hover:text-wx-700 font-medium underline underline-offset-2">→ 查看微信支付 Native 支付官方文档 ↗</a></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 微信 APP 支付 -->
+                <div class="compare-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-type="wx">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-wx-100 flex items-center justify-center pulse-wx">
+                                    <i data-lucide="smartphone" class="w-4 h-4 text-wx-600"></i>
+                                </div>
+                                <span class="font-semibold">微信 APP 支付</span>
+                            </div>
+                            <span class="badge bg-green-50 text-green-700">✅ 推荐</span>
+                        </div>
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="smartphone" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">普通浏览器</span>
+                                <span class="text-slate-400 text-xs ml-auto">不适用</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="message-circle" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">微信内浏览器</span>
+                                <span class="text-slate-400 text-xs ml-auto">不适用</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="app-window" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">App WebView</span>
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 ml-auto"></i>
+                            </div>
+                        </div>
+                        <button onclick="toggleDetail('wx-app')" class="w-full py-2 text-sm text-wx-600 font-medium hover:bg-wx-50 rounded-lg transition-colors flex items-center justify-center gap-1">
+                            <span>查看详情</span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform" id="icon-wx-app"></i>
+                        </button>
+                    </div>
+                    <div id="detail-wx-app" class="expand-content bg-slate-50 border-t border-slate-100">
+                        <div class="p-5 text-sm text-slate-600 space-y-3">
+                            <p><strong class="text-slate-800">适用场景：</strong>原生 Android/iOS App 中集成微信支付。</p>
+                            <p><strong class="text-slate-800">技术流程：</strong>集成微信 SDK → 后端生成预支付订单 → 前端调用 SDK 调起微信 → 用户支付 → 返回 App → 异步通知确认。</p>
+                            <p><strong class="text-slate-800">核心优势：</strong>最佳用户体验，完整的支付结果回调，支付完成后自动返回 App。</p>
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-green-800">
+                                <i data-lucide="check-circle" class="w-4 h-4 inline mr-1"></i>
+                                这是微信官方对 App 场景<strong>唯一推荐</strong>的支付方式。
+                            </div>
+                            <p class="pt-1"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-wx-600 hover:text-wx-700 font-medium underline underline-offset-2">→ 查看微信支付 APP 支付官方文档 ↗</a></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 支付宝手机网站支付 -->
+                <div class="compare-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-type="ali">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-ali-100 flex items-center justify-center">
+                                    <i data-lucide="globe" class="w-4 h-4 text-ali-600"></i>
+                                </div>
+                                <span class="font-semibold">支付宝手机网站支付</span>
+                            </div>
+                            <span class="badge bg-ali-50 text-ali-700">Wap</span>
+                        </div>
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="smartphone" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">普通浏览器</span>
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 ml-auto"></i>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="message-circle" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">微信内浏览器</span>
+                                <i data-lucide="x-circle" class="w-4 h-4 text-red-400 ml-auto"></i>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="app-window" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">App WebView</span>
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 ml-auto"></i>
+                            </div>
+                        </div>
+                        <button onclick="toggleDetail('ali-wap')" class="w-full py-2 text-sm text-ali-600 font-medium hover:bg-ali-50 rounded-lg transition-colors flex items-center justify-center gap-1">
+                            <span>查看详情</span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform" id="icon-ali-wap"></i>
+                        </button>
+                    </div>
+                    <div id="detail-ali-wap" class="expand-content bg-slate-50 border-t border-slate-100">
+                        <div class="p-5 text-sm text-slate-600 space-y-3">
+                            <p><strong class="text-slate-800">适用场景：</strong>手机浏览器中打开商户 H5 页面，唤起支付宝完成支付。</p>
+                            <p><strong class="text-slate-800">申请条件：</strong>企业/个体户 + 实名认证 + ICP 备案。</p>
+                            <p><strong class="text-slate-800">技术流程：</strong>后端调用 <code>alipay.trade.wap.pay</code> → 返回 Form 表单或 URL → 前端提交/跳转 → 唤起支付宝 App → 支付完成 → 自动返回。</p>
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-yellow-800">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-1"></i>
+                                新商户（2019年8月后）未安装支付宝时不再支持网页支付，仅引导下载 App。
+                            </div>
+                            <p class="pt-1"><a href="https://opendocs.alipay.com/open/203/105285" target="_blank" class="text-ali-600 hover:text-ali-700 font-medium underline underline-offset-2">→ 查看支付宝手机网站支付官方文档 ↗</a></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 支付宝 APP 支付 -->
+                <div class="compare-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-type="ali">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-ali-100 flex items-center justify-center pulse-ali">
+                                    <i data-lucide="smartphone" class="w-4 h-4 text-ali-600"></i>
+                                </div>
+                                <span class="font-semibold">支付宝 APP 支付</span>
+                            </div>
+                            <span class="badge bg-green-50 text-green-700">✅ 推荐</span>
+                        </div>
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="smartphone" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">普通浏览器</span>
+                                <span class="text-slate-400 text-xs ml-auto">不适用</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="message-circle" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">微信内浏览器</span>
+                                <span class="text-slate-400 text-xs ml-auto">不适用</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <i data-lucide="app-window" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-slate-600">App WebView</span>
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 ml-auto"></i>
+                            </div>
+                        </div>
+                        <button onclick="toggleDetail('ali-app')" class="w-full py-2 text-sm text-ali-600 font-medium hover:bg-ali-50 rounded-lg transition-colors flex items-center justify-center gap-1">
+                            <span>查看详情</span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform" id="icon-ali-app"></i>
+                        </button>
+                    </div>
+                    <div id="detail-ali-app" class="expand-content bg-slate-50 border-t border-slate-100">
+                        <div class="p-5 text-sm text-slate-600 space-y-3">
+                            <p><strong class="text-slate-800">适用场景：</strong>原生 Android/iOS App 中集成支付宝支付。</p>
+                            <p><strong class="text-slate-800">技术流程：</strong>集成支付宝 SDK → 后端生成订单字符串 → 前端调用 SDK 发起支付 → 用户在支付宝 App 内完成 → 返回结果。</p>
+                            <p><strong class="text-slate-800">核心优势：</strong>最佳体验，完整支付结果回调（resultCode: 9000=成功，6001=取消），支付完成后自动返回 App。</p>
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-green-800">
+                                <i data-lucide="check-circle" class="w-4 h-4 inline mr-1"></i>
+                                这是 App 场景下支付宝的<strong>最佳实践</strong>。
+                            </div>
+                            <p class="pt-1"><a href="https://opendocs.alipay.com/open/204/105695" target="_blank" class="text-ali-600 hover:text-ali-700 font-medium underline underline-offset-2">→ 查看支付宝 APP 支付官方文档 ↗</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 支付流程可视化 -->
+    <section id="flow" class="py-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="route" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">支付流程可视化</h2>
+            </div>
+
+            <!-- 流程切换 -->
+            <div class="flex gap-2 mb-6">
+                <button onclick="switchFlow('wx-h5')" id="flow-tab-wx-h5" class="px-4 py-2 rounded-lg text-sm font-medium bg-wx-100 text-wx-700 transition-all">微信 H5 支付</button>
+                <button onclick="switchFlow('wx-app')" id="flow-tab-wx-app" class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">微信 APP 支付</button>
+                <button onclick="switchFlow('ali-wap')" id="flow-tab-ali-wap" class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">支付宝手机网站</button>
+                <button onclick="switchFlow('ali-app')" id="flow-tab-ali-app" class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">支付宝 APP 支付</button>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
+                <!-- 微信 H5 流程 -->
+                <div id="flow-wx-h5" class="flow-panel">
+                    <div class="flex flex-wrap items-center justify-center gap-2 md:gap-0">
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="mouse-pointer" class="w-5 h-5 text-slate-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">用户点击支付</div>
+                            <div class="text-xs text-slate-500 mt-1">App WebView / 浏览器</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="server" class="w-5 h-5 text-blue-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">后端统一下单</div>
+                            <div class="text-xs text-slate-500 mt-1">trade_type=MWEB</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-wx-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="link" class="w-5 h-5 text-wx-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">返回 mweb_url</div>
+                            <div class="text-xs text-slate-500 mt-1">拼接 redirect_url</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-wx-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="external-link" class="w-5 h-5 text-wx-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">跳转微信中间页</div>
+                            <div class="text-xs text-slate-500 mt-1">唤起微信 App</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-wx-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-wx-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">支付完成</div>
+                            <div class="text-xs text-slate-500 mt-1">跳回 redirect_url</div>
+                        </div>
+                    </div>
+                    <div class="mt-6 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0"></i>
+                            <div>
+                                <div class="font-medium text-yellow-800 mb-1">关键注意事项</div>
+                                <ul class="text-sm text-yellow-700 space-y-1 list-disc list-inside">
+                                    <li>App WebView 中需拦截 <code>weixin://wap/pay</code> 协议唤起微信</li>
+                                    <li>iOS 支付完成后无法自动回跳 App，会跳转到外部浏览器</li>
+                                    <li>微信官方明确不建议在 App 中使用 H5 支付</li>
+                                    <li>mweb_url 有效期仅 5 分钟</li>
+                                </ul>
+                                <div class="mt-2 text-sm"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-yellow-700 underline underline-offset-2 hover:text-yellow-900">→ 微信支付 H5 支付官方文档 ↗</a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 微信 APP 流程 -->
+                <div id="flow-wx-app" class="flow-panel hidden">
+                    <div class="flex flex-wrap items-center justify-center gap-2 md:gap-0">
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="mouse-pointer" class="w-5 h-5 text-slate-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">用户点击支付</div>
+                            <div class="text-xs text-slate-500 mt-1">原生 App 内</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="server" class="w-5 h-5 text-blue-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">后端生成预支付订单</div>
+                            <div class="text-xs text-slate-500 mt-1">返回支付参数</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-wx-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="code" class="w-5 h-5 text-wx-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">App 调用 SDK</div>
+                            <div class="text-xs text-slate-500 mt-1">wxApi.sendReq()</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-wx-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="message-circle" class="w-5 h-5 text-wx-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">唤起微信 App</div>
+                            <div class="text-xs text-slate-500 mt-1">用户确认支付</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-wx-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-wx-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">自动返回 App</div>
+                            <div class="text-xs text-slate-500 mt-1">SDK 回调 + 异步通知</div>
+                        </div>
+                    </div>
+                    <div class="mt-6 p-4 bg-green-50 rounded-xl border border-green-200">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="check-circle" class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0"></i>
+                            <div>
+                                <div class="font-medium text-green-800 mb-1">最佳实践优势</div>
+                                <ul class="text-sm text-green-700 space-y-1 list-disc list-inside">
+                                    <li>支付完成后自动返回 App，体验最佳</li>
+                                    <li>完整的 SDK 回调结果（成功/取消/失败）</li>
+                                    <li>微信官方唯一推荐的 App 支付方式</li>
+                                    <li>无需处理浏览器跳转、referer 等复杂问题</li>
+                                </ul>
+                                <div class="mt-2 text-sm"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-green-700 underline underline-offset-2 hover:text-green-900">→ 微信支付 APP 支付官方文档 ↗</a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 支付宝手机网站流程 -->
+                <div id="flow-ali-wap" class="flow-panel hidden">
+                    <div class="flex flex-wrap items-center justify-center gap-2 md:gap-0">
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="mouse-pointer" class="w-5 h-5 text-slate-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">用户点击支付</div>
+                            <div class="text-xs text-slate-500 mt-1">App WebView / 浏览器</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="server" class="w-5 h-5 text-blue-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">后端生成订单</div>
+                            <div class="text-xs text-slate-500 mt-1">alipay.trade.wap.pay</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-ali-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="file-text" class="w-5 h-5 text-ali-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">返回 Form 表单</div>
+                            <div class="text-xs text-slate-500 mt-1">自动提交/跳转</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-ali-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="shopping-bag" class="w-5 h-5 text-ali-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">唤起支付宝 App</div>
+                            <div class="text-xs text-slate-500 mt-1">已安装/未安装</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-ali-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-ali-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">支付完成</div>
+                            <div class="text-xs text-slate-500 mt-1">return_url + notify_url</div>
+                        </div>
+                    </div>
+                    <div class="mt-6 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0"></i>
+                            <div>
+                                <div class="font-medium text-yellow-800 mb-1">关键注意事项</div>
+                                <ul class="text-sm text-yellow-700 space-y-1 list-disc list-inside">
+                                    <li>App WebView 需拦截 <code>alipays://</code> 协议，否则无法唤起支付宝</li>
+                                    <li>不要在微信浏览器中调起支付宝，会被拦截</li>
+                                    <li>新商户未安装支付宝时仅引导下载，不再支持网页版支付</li>
+                                    <li>异步通知（notify_url）是最终结果依据，不能依赖同步返回</li>
+                                </ul>
+                                <div class="mt-2 text-sm"><a href="https://opendocs.alipay.com/open/203/105285" target="_blank" class="text-yellow-700 underline underline-offset-2 hover:text-yellow-900">→ 支付宝手机网站支付官方文档 ↗</a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 支付宝 APP 流程 -->
+                <div id="flow-ali-app" class="flow-panel hidden">
+                    <div class="flex flex-wrap items-center justify-center gap-2 md:gap-0">
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="mouse-pointer" class="w-5 h-5 text-slate-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">用户点击支付</div>
+                            <div class="text-xs text-slate-500 mt-1">原生 App 内</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="server" class="w-5 h-5 text-blue-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">后端生成订单串</div>
+                            <div class="text-xs text-slate-500 mt-1">orderString</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-ali-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="code" class="w-5 h-5 text-ali-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">App 调用 SDK</div>
+                            <div class="text-xs text-slate-500 mt-1">payTask.payV2()</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-ali-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="shopping-bag" class="w-5 h-5 text-ali-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">唤起支付宝 App</div>
+                            <div class="text-xs text-slate-500 mt-1">用户确认支付</div>
+                        </div>
+                        <div class="flow-step bg-slate-50 rounded-xl p-4 text-center min-w-[140px]">
+                            <div class="w-10 h-10 rounded-full bg-ali-100 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-ali-600"></i>
+                            </div>
+                            <div class="text-sm font-medium text-slate-800">自动返回 App</div>
+                            <div class="text-xs text-slate-500 mt-1">resultCode + 异步通知</div>
+                        </div>
+                    </div>
+                    <div class="mt-6 p-4 bg-green-50 rounded-xl border border-green-200">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="check-circle" class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0"></i>
+                            <div>
+                                <div class="font-medium text-green-800 mb-1">SDK 结果码速查</div>
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                                    <div class="bg-white rounded-lg p-2 text-center border border-green-200">
+                                        <div class="text-lg font-bold text-green-600">9000</div>
+                                        <div class="text-xs text-green-700">支付成功</div>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-2 text-center border border-yellow-200">
+                                        <div class="text-lg font-bold text-yellow-600">8000</div>
+                                        <div class="text-xs text-yellow-700">处理中</div>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-2 text-center border border-red-200">
+                                        <div class="text-lg font-bold text-red-600">6001</div>
+                                        <div class="text-xs text-red-700">用户取消</div>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-2 text-center border border-red-200">
+                                        <div class="text-lg font-bold text-red-600">4000</div>
+                                        <div class="text-xs text-red-700">支付失败</div>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-2 text-center border border-red-200">
+                                        <div class="text-lg font-bold text-red-600">6002</div>
+                                        <div class="text-xs text-red-700">网络出错</div>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-2 text-center border border-slate-200">
+                                        <div class="text-lg font-bold text-slate-600">5000</div>
+                                        <div class="text-xs text-slate-600">重复请求</div>
+                                    </div>
+                                </div>
+                                <div class="mt-2 text-sm"><a href="https://opendocs.alipay.com/open/204/105695" target="_blank" class="text-green-700 underline underline-offset-2 hover:text-green-900">→ 支付宝 APP 支付官方文档 ↗</a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 选型决策树 -->
+    <section id="decision" class="py-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="git-branch" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">交互式选型决策树</h2>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
+                <div id="decision-tree" class="space-y-6">
+                    <!-- Step 1 -->
+                    <div class="decision-step" data-step="1">
+                        <div class="text-center mb-4">
+                            <span class="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium mb-2">第一步</span>
+                            <h3 class="text-lg font-bold text-slate-800">你的 App 是什么类型？</h3>
+                        </div>
+                        <div class="grid md:grid-cols-3 gap-4">
+                            <button onclick="decision(1, 'native')" class="decision-node p-5 rounded-xl border-2 border-slate-200 hover:border-indigo-400 bg-slate-50 text-left transition-all">
+                                <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center mb-3">
+                                    <i data-lucide="smartphone" class="w-5 h-5 text-indigo-600"></i>
+                                </div>
+                                <div class="font-semibold text-slate-800">原生 App</div>
+                                <div class="text-sm text-slate-500 mt-1">Android / iOS 原生开发</div>
+                            </button>
+                            <button onclick="decision(1, 'hybrid')" class="decision-node p-5 rounded-xl border-2 border-slate-200 hover:border-indigo-400 bg-slate-50 text-left transition-all">
+                                <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center mb-3">
+                                    <i data-lucide="layers" class="w-5 h-5 text-indigo-600"></i>
+                                </div>
+                                <div class="font-semibold text-slate-800">混合开发</div>
+                                <div class="text-sm text-slate-500 mt-1">uni-app / Flutter / React Native</div>
+                            </button>
+                            <button onclick="decision(1, 'webview')" class="decision-node p-5 rounded-xl border-2 border-slate-200 hover:border-indigo-400 bg-slate-50 text-left transition-all">
+                                <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center mb-3">
+                                    <i data-lucide="globe" class="w-5 h-5 text-indigo-600"></i>
+                                </div>
+                                <div class="font-semibold text-slate-800">纯 WebView 封装</div>
+                                <div class="text-sm text-slate-500 mt-1">只有 H5 页面，套个壳</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 (hidden initially) -->
+                    <div class="decision-step hidden" data-step="2">
+                        <div class="text-center mb-4">
+                            <span class="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium mb-2">第二步</span>
+                            <h3 class="text-lg font-bold text-slate-800">你需要接入哪些支付渠道？</h3>
+                        </div>
+                        <div class="grid md:grid-cols-3 gap-4">
+                            <button onclick="decision(2, 'wx')" class="decision-node p-5 rounded-xl border-2 border-slate-200 hover:border-wx-400 bg-slate-50 text-left transition-all">
+                                <div class="w-10 h-10 rounded-lg bg-wx-100 flex items-center justify-center mb-3">
+                                    <i data-lucide="message-circle" class="w-5 h-5 text-wx-600"></i>
+                                </div>
+                                <div class="font-semibold text-slate-800">仅微信支付</div>
+                            </button>
+                            <button onclick="decision(2, 'ali')" class="decision-node p-5 rounded-xl border-2 border-slate-200 hover:border-ali-400 bg-slate-50 text-left transition-all">
+                                <div class="w-10 h-10 rounded-lg bg-ali-100 flex items-center justify-center mb-3">
+                                    <i data-lucide="shopping-bag" class="w-5 h-5 text-ali-600"></i>
+                                </div>
+                                <div class="font-semibold text-slate-800">仅支付宝</div>
+                            </button>
+                            <button onclick="decision(2, 'both')" class="decision-node p-5 rounded-xl border-2 border-slate-200 hover:border-indigo-400 bg-slate-50 text-left transition-all">
+                                <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center mb-3">
+                                    <i data-lucide="credit-card" class="w-5 h-5 text-indigo-600"></i>
+                                </div>
+                                <div class="font-semibold text-slate-800">微信 + 支付宝</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Result (hidden initially) -->
+                    <div class="decision-step hidden" data-step="result">
+                        <div class="text-center mb-4">
+                            <span class="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium mb-2">推荐方案</span>
+                            <h3 class="text-lg font-bold text-slate-800" id="result-title"></h3>
+                        </div>
+                        <div id="result-content" class="bg-slate-50 rounded-xl p-6 border border-slate-200"></div>
+                        <div class="text-center mt-4">
+                            <button onclick="resetDecision()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+                                重新选型
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 避坑指南 -->
+    <section id="pitfalls" class="py-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="shield-alert" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">避坑指南</h2>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+                <!-- 微信坑 -->
+                <div class="space-y-4">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <i data-lucide="message-circle" class="w-5 h-5 text-wx-600"></i>
+                        微信侧常见坑
+                    </h3>
+                    
+                    <div class="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                        <button onclick="togglePitfall('wx-p1')" class="w-full p-4 text-left flex items-center gap-3 hover:bg-slate-50 transition-colors">
+                            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="x" class="w-4 h-4 text-red-500"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-slate-800">"网络环境未能通过安全验证"</div>
+                            </div>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform" id="pitfall-icon-wx-p1"></i>
+                        </button>
+                        <div id="pitfall-wx-p1" class="expand-content border-t border-slate-100">
+                            <div class="p-4 text-sm text-slate-600 bg-slate-50">
+                                <p class="mb-2"><strong>原因：</strong>统一下单传的 <code>spbill_create_ip</code> 与用户实际调起支付时微信侧检测到的 IP 不一致。</p>
+                                <p><strong>解决：</strong>确保后端传的是用户真实 IP（不是服务器 IP）；保持网络环境一致（不要下单时 WiFi，支付时切 4G）。</p>
+                                <p class="mt-2"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-wx-600 hover:text-wx-700 font-medium underline underline-offset-2">→ 查看微信支付 H5 支付官方文档 ↗</a></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                        <button onclick="togglePitfall('wx-p2')" class="w-full p-4 text-left flex items-center gap-3 hover:bg-slate-50 transition-colors">
+                            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="x" class="w-4 h-4 text-red-500"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-slate-800">"商家参数格式有误" / referer 为空</div>
+                            </div>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform" id="pitfall-icon-wx-p2"></i>
+                        </button>
+                        <div id="pitfall-wx-p2" class="expand-content border-t border-slate-100">
+                            <div class="p-4 text-sm text-slate-600 bg-slate-50">
+                                <p class="mb-2"><strong>原因：</strong>直接访问支付链接或 App WebView 未设置 referer。</p>
+                                <p><strong>解决：</strong>按正常页面跳转流程发起；Android WebView 中手动设置 referer：<code>headers.put("Referer", "https://your-domain.com")</code>。</p>
+                                <p class="mt-2"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-wx-600 hover:text-wx-700 font-medium underline underline-offset-2">→ 查看微信支付 H5 支付官方文档 ↗</a></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                        <button onclick="togglePitfall('wx-p3')" class="w-full p-4 text-left flex items-center gap-3 hover:bg-slate-50 transition-colors">
+                            <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-yellow-500"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-slate-800">iOS 支付后跳到了外部浏览器</div>
+                            </div>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform" id="pitfall-icon-wx-p3"></i>
+                        </button>
+                        <div id="pitfall-wx-p3" class="expand-content border-t border-slate-100">
+                            <div class="p-4 text-sm text-slate-600 bg-slate-50">
+                                <p class="mb-2"><strong>原因：</strong>微信 H5 支付的 iOS 系统限制，支付完成后无法自动回跳 App。</p>
+                                <p class="mb-2"><strong>解决：</strong>这是系统限制，无法根本解决。建议服务端模拟中间请求直接拿到最终支付地址；或者更推荐直接改用<strong>微信 APP 支付</strong>。</p>
+                                <p class="mt-2"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-wx-600 hover:text-wx-700 font-medium underline underline-offset-2">→ 查看微信支付 APP 支付官方文档 ↗</a></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 支付宝坑 -->
+                <div class="space-y-4">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <i data-lucide="shopping-bag" class="w-5 h-5 text-ali-600"></i>
+                        支付宝侧常见坑
+                    </h3>
+                    
+                    <div class="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                        <button onclick="togglePitfall('ali-p1')" class="w-full p-4 text-left flex items-center gap-3 hover:bg-slate-50 transition-colors">
+                            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="x" class="w-4 h-4 text-red-500"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-slate-800">WebView 中无法唤起支付宝</div>
+                            </div>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform" id="pitfall-icon-ali-p1"></i>
+                        </button>
+                        <div id="pitfall-ali-p1" class="expand-content border-t border-slate-100">
+                            <div class="p-4 text-sm text-slate-600 bg-slate-50">
+                                <p class="mb-2"><strong>原因：</strong>WebView 默认拦截了 <code>alipays://</code> 等非 http 协议。</p>
+                                <p><strong>解决：</strong>重写 <code>shouldOverrideUrlLoading</code>，当 URL 以 <code>alipays://</code> 开头时，用 Intent 唤起支付宝 App。</p>
+                                <p class="mt-2"><a href="https://opendocs.alipay.com/open/203/105285" target="_blank" class="text-ali-600 hover:text-ali-700 font-medium underline underline-offset-2">→ 查看支付宝手机网站支付官方文档 ↗</a></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                        <button onclick="togglePitfall('ali-p2')" class="w-full p-4 text-left flex items-center gap-3 hover:bg-slate-50 transition-colors">
+                            <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-yellow-500"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-slate-800">未安装支付宝时无法网页支付</div>
+                            </div>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform" id="pitfall-icon-ali-p2"></i>
+                        </button>
+                        <div id="pitfall-ali-p2" class="expand-content border-t border-slate-100">
+                            <div class="p-4 text-sm text-slate-600 bg-slate-50">
+                                <p class="mb-2"><strong>原因：</strong>2019年8月起新签约商户，未安装支付宝时不再支持浏览器网页支付，仅引导下载 App。</p>
+                                <p><strong>解决：</strong>这是产品策略，无法绕过。确保你的页面有"未安装支付宝"的友好提示，引导用户下载。</p>
+                                <p class="mt-2"><a href="https://opendocs.alipay.com/open/203/105285" target="_blank" class="text-ali-600 hover:text-ali-700 font-medium underline underline-offset-2">→ 查看支付宝手机网站支付官方文档 ↗</a></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                        <button onclick="togglePitfall('ali-p3')" class="w-full p-4 text-left flex items-center gap-3 hover:bg-slate-50 transition-colors">
+                            <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-yellow-500"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-slate-800">在微信浏览器中无法使用</div>
+                            </div>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform" id="pitfall-icon-ali-p3"></i>
+                        </button>
+                        <div id="pitfall-ali-p3" class="expand-content border-t border-slate-100">
+                            <div class="p-4 text-sm text-slate-600 bg-slate-50">
+                                <p class="mb-2"><strong>原因：</strong>微信会拦截支付宝的唤起链接。</p>
+                                <p><strong>解决：</strong>不要在微信浏览器中提供支付宝支付选项。检测到微信浏览器时，只展示微信支付或引导用户"在浏览器中打开"。</p>
+                                <p class="mt-2"><a href="https://opendocs.alipay.com/open/203/105285" target="_blank" class="text-ali-600 hover:text-ali-700 font-medium underline underline-offset-2">→ 查看支付宝手机网站支付官方文档 ↗</a></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 代码速查 -->
+    <section id="code" class="py-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="code-2" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">代码速查</h2>
+            </div>
+
+            <div class="bg-slate-900 rounded-2xl overflow-hidden shadow-lg">
+                <div class="flex border-b border-slate-700">
+                    <button onclick="switchCode('wx-webview')" id="code-tab-wx-webview" class="px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors border-b-2 border-wx-500 text-white">微信 WebView 拦截</button>
+                    <button onclick="switchCode('ali-webview')" id="code-tab-ali-webview" class="px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors border-b-2 border-transparent">支付宝 WebView 拦截</button>
+                    <button onclick="switchCode('wx-h5-js')" id="code-tab-wx-h5-js" class="px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors border-b-2 border-transparent">微信 H5 前端 JS</button>
+                    <button onclick="switchCode('ali-h5-java')" id="code-tab-ali-h5-java" class="px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors border-b-2 border-transparent">支付宝 H5 后端 Java</button>
+                </div>
+
+                <div class="p-4 overflow-x-auto">
+                    <pre id="code-wx-webview" class="code-block text-green-400"><code>// Android WebView 拦截微信支付链接
+@Override
+public boolean shouldOverrideUrlLoading(WebView view, String url) {
+    if (url.startsWith("weixin://wap/pay?")) {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        startActivity(intent);
+        return true; // 拦截，不要继续加载
+    }
+    return super.shouldOverrideUrlLoading(view, url);
+}</code></pre>
+
+                    <pre id="code-ali-webview" class="code-block text-orange-400 hidden"><code>// Android WebView 拦截支付宝支付链接
+@Override
+public boolean shouldOverrideUrlLoading(WebView view, String url) {
+    if (url.startsWith("alipays://") || url.startsWith("alipay")) {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        startActivity(intent);
+        return true; // 拦截，唤起支付宝 App
+    }
+    return super.shouldOverrideUrlLoading(view, url);
+}
+
+// HarmonyOS 示例
+.onLoadIntercept((event) => {
+    let url = event.data.getRequestUrl();
+    let result = new Pay().payInterceptorWithUrl(url, true, (result) => {
+        let resultCode = result.get("resultCode");
+        let returnUrl = result.get("returnUrl");
+        // 9000=成功, 8000=处理中, 4000=失败, 6001=取消
+        this.webviewController.loadUrl(returnUrl);
+    });
+    return result;
+})</code></pre>
+
+                    <pre id="code-wx-h5-js" class="code-block text-green-400 hidden"><code>// 前端判断浏览器类型并调起微信 H5 支付
+function isWeixin() {
+    var ua = window.navigator.userAgent.toLowerCase();
+    return ua.match(/MicroMessenger/i) == "micromessenger";
+}
+
+// 非微信浏览器 → H5 支付
+if (!isWeixin()) {
+    let url = res.orderString + '&redirect_url=' + encodeURIComponent(that.baseUrl);
+    window.location.replace(url);
+}
+
+// 微信浏览器 → JSAPI 支付
+wx.config({
+    appId: sign.appId,
+    timestamp: sign.timestamp,
+    nonceStr: sign.nonceStr,
+    signature: sign.signature,
+    jsApiList: ['chooseWXPay']
+});
+wx.ready(() => {
+    wx.chooseWXPay({
+        timestamp: result.timeStamp,
+        nonceStr: result.nonceStr,
+        package: result.package,
+        signType: result.signType,
+        paySign: result.paySign,
+        success: (res) => { /* 支付成功 */ }
+    });
+});</code></pre>
+
+                    <pre id="code-ali-h5-java" class="code-block text-orange-400 hidden"><code>// Java 后端：支付宝手机网站支付
+AlipayTradeWapPayRequest request = new AlipayTradeWapPayRequest();
+request.setNotifyUrl("https://your-domain.com/alipay/notify");
+request.setReturnUrl("https://your-domain.com/alipay/return");
+
+AlipayTradeWapPayModel model = new AlipayTradeWapPayModel();
+model.setOutTradeNo("订单号");
+model.setTotalAmount("100.00");
+model.setSubject("商品名称");
+model.setProductCode("QUICK_WAP_WAY");
+request.setBizModel(model);
+
+// 生成 Form 表单 HTML，直接输出到 response
+String form = alipayClient.pageExecute(request).getBody();
+response.setContentType("text/html;charset=UTF-8");
+response.getWriter().write(form);</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 底部总结 -->
+    <section class="py-12 px-4 bg-slate-900 text-white">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                        <i data-lucide="target" class="w-5 h-5 text-indigo-400"></i>
+                        核心建议
+                    </h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        原生 App 首选原生 SDK 支付；混合开发通过桥接调用原生 SDK；纯 WebView 封装 App 中支付宝 H5 可用，微信 H5 建议评估 iOS 回跳问题。
+                    </p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                        <i data-lucide="lightbulb" class="w-5 h-5 text-yellow-400"></i>
+                        快捷方案
+                    </h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        预算有限或快速上线？考虑聚合支付服务商（通联支付、拉卡拉等），一套接口覆盖微信+支付宝，省去单独申请和对接的麻烦。
+                    </p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                        <i data-lucide="bookmark" class="w-5 h-5 text-green-400"></i>
+                        参考文档
+                    </h3>
+                    <div class="text-slate-400 text-sm space-y-1">
+                        <p>• <a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-green-400 hover:text-green-300 underline underline-offset-2 transition-colors">微信支付 H5 支付官方文档 ↗</a></p>
+                        <p>• <a href="https://pay.weixin.qq.com/doc/v3/partner/4012069855" target="_blank" class="text-green-400 hover:text-green-300 underline underline-offset-2 transition-colors">微信支付 JSAPI 支付官方文档 ↗</a></p>
+                        <p>• <a href="https://opendocs.alipay.com/open/203/105285" target="_blank" class="text-orange-400 hover:text-orange-300 underline underline-offset-2 transition-colors">支付宝手机网站支付官方文档 ↗</a></p>
+                        <p>• <a href="https://opendocs.alipay.com/open/204/105695" target="_blank" class="text-orange-400 hover:text-orange-300 underline underline-offset-2 transition-colors">支付宝 APP 支付官方文档 ↗</a></p>
+                        <p>• <a href="https://uniapp.dcloud.net.cn/api/plugins/payment.html" target="_blank" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors">uni-app 支付模块文档 ↗</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // 初始化 Lucide icons
+        lucide.createIcons();
+
+        // 标签切换
+        function switchTab(type) {
+            document.querySelectorAll('.compare-card').forEach(card => {
+                if (type === 'all' || card.dataset.type === type) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            ['all', 'wx', 'ali'].forEach(t => {
+                const btn = document.getElementById('tab-' + t);
+                if (t === type) {
+                    btn.classList.remove('tab-inactive');
+                    btn.classList.add('tab-active');
+                } else {
+                    btn.classList.remove('tab-active');
+                    btn.classList.add('tab-inactive');
+                }
+            });
+        }
+
+        // 展开/收起详情
+        function toggleDetail(id) {
+            const detail = document.getElementById('detail-' + id);
+            const icon = document.getElementById('icon-' + id);
+            detail.classList.toggle('open');
+            icon.style.transform = detail.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        // 流程切换
+        function switchFlow(flowId) {
+            document.querySelectorAll('.flow-panel').forEach(panel => panel.classList.add('hidden'));
+            document.getElementById('flow-' + flowId).classList.remove('hidden');
+            
+            ['wx-h5', 'wx-app', 'ali-wap', 'ali-app'].forEach(id => {
+                const btn = document.getElementById('flow-tab-' + id);
+                if (id === flowId) {
+                    if (id.startsWith('wx')) {
+                        btn.className = 'px-4 py-2 rounded-lg text-sm font-medium bg-wx-100 text-wx-700 transition-all';
+                    } else {
+                        btn.className = 'px-4 py-2 rounded-lg text-sm font-medium bg-ali-100 text-ali-700 transition-all';
+                    }
+                } else {
+                    btn.className = 'px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all';
+                }
+            });
+        }
+
+        // 避坑展开
+        function togglePitfall(id) {
+            const detail = document.getElementById('pitfall-' + id);
+            const icon = document.getElementById('pitfall-icon-' + id);
+            detail.classList.toggle('open');
+            icon.style.transform = detail.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        // 代码切换
+        function switchCode(codeId) {
+            document.querySelectorAll('.code-block').forEach(block => block.classList.add('hidden'));
+            document.getElementById('code-' + codeId).classList.remove('hidden');
+            
+            ['wx-webview', 'ali-webview', 'wx-h5-js', 'ali-h5-java'].forEach(id => {
+                const btn = document.getElementById('code-tab-' + id);
+                if (id === codeId) {
+                    btn.classList.remove('border-transparent');
+                    btn.classList.add('text-white');
+                    if (id.startsWith('wx')) {
+                        btn.classList.add('border-wx-500');
+                        btn.classList.remove('border-ali-500');
+                    } else {
+                        btn.classList.add('border-ali-500');
+                        btn.classList.remove('border-wx-500');
+                    }
+                } else {
+                    btn.classList.add('border-transparent');
+                    btn.classList.remove('text-white', 'border-wx-500', 'border-ali-500');
+                }
+            });
+        }
+
+        // 决策树
+        let decisionState = { step1: null, step2: null };
+
+        function decision(step, value) {
+            if (step === 1) {
+                decisionState.step1 = value;
+                document.querySelector('.decision-step[data-step="1"]').classList.add('hidden');
+                document.querySelector('.decision-step[data-step="2"]').classList.remove('hidden');
+            } else if (step === 2) {
+                decisionState.step2 = value;
+                showDecisionResult();
+            }
+        }
+
+        function showDecisionResult() {
+            document.querySelector('.decision-step[data-step="2"]').classList.add('hidden');
+            const resultStep = document.querySelector('.decision-step[data-step="result"]');
+            resultStep.classList.remove('hidden');
+
+            const { step1, step2 } = decisionState;
+            let title = '';
+            let content = '';
+
+            if (step1 === 'native') {
+                if (step2 === 'wx') {
+                    title = '原生 App + 微信支付 → 微信 APP 支付';
+                    content = `
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-2 text-green-700 font-medium">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i> 最佳方案：微信 APP 支付（原生 SDK）
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-slate-200">
+                                <div class="font-medium text-slate-800 mb-2">为什么？</div>
+                                <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside">
+                                    <li>原生 App 有完整的 Android/iOS 开发能力</li>
+                                    <li>微信 APP 支付是官方唯一推荐的 App 场景支付方式</li>
+                                    <li>支付完成后自动返回 App，体验最佳</li>
+                                    <li>无需处理 WebView 跳转、referer 等复杂问题</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-slate-200">
+                                <div class="font-medium text-slate-800 mb-2">实施步骤</div>
+                                <ol class="text-sm text-slate-600 space-y-1 list-decimal list-inside">
+                                    <li>申请微信支付商户号，开通 APP 支付产品</li>
+                                    <li>Android 集成微信 SDK（gradle 依赖）</li>
+                                    <li>iOS 集成微信 SDK（CocoaPods / 手动导入）</li>
+                                    <li>配置 URL Scheme（wx+appid）</li>
+                                    <li>后端实现统一下单接口（trade_type=APP）</li>
+                                    <li>前端调用 SDK 发起支付</li>
+                                </ol>
+                            </div>
+                            <div class="text-sm"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-wx-600 hover:text-wx-700 font-medium underline underline-offset-2">→ 查看微信支付 APP 支付官方文档 ↗</a></div>
+                        </div>`;
+                } else if (step2 === 'ali') {
+                    title = '原生 App + 支付宝 → 支付宝 APP 支付';
+                    content = `
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-2 text-green-700 font-medium">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i> 最佳方案：支付宝 APP 支付（原生 SDK）
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-slate-200">
+                                <div class="font-medium text-slate-800 mb-2">为什么？</div>
+                                <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside">
+                                    <li>原生 App 有完整的 Android/iOS 开发能力</li>
+                                    <li>支付完成后自动返回 App，有完整的 SDK 结果回调</li>
+                                    <li>resultCode 明确标识支付状态（9000=成功，6001=取消）</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-slate-200">
+                                <div class="font-medium text-slate-800 mb-2">实施步骤</div>
+                                <ol class="text-sm text-slate-600 space-y-1 list-decimal list-inside">
+                                    <li>申请支付宝企业/个体户账户，开通 APP 支付</li>
+                                    <li>集成支付宝 SDK（Android AAR / iOS Framework）</li>
+                                    <li>配置 URL Scheme</li>
+                                    <li>后端生成订单字符串（orderString）</li>
+                                    <li>前端调用 payTask.payV2() 发起支付</li>
+                                </ol>
+                            </div>
+                            <div class="text-sm"><a href="https://opendocs.alipay.com/open/204/105695" target="_blank" class="text-ali-600 hover:text-ali-700 font-medium underline underline-offset-2">→ 查看支付宝 APP 支付官方文档 ↗</a></div>
+                        </div>`;
+                } else {
+                    title = '原生 App + 双渠道 → 双原生 SDK';
+                    content = `
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-2 text-green-700 font-medium">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i> 最佳方案：同时集成微信 APP 支付 + 支付宝 APP 支付
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-slate-200">
+                                <div class="font-medium text-slate-800 mb-2">架构建议</div>
+                                <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside">
+                                    <li>封装统一的支付接口层，底层分别调用微信/支付宝 SDK</li>
+                                    <li>根据用户选择动态调用对应的支付渠道</li>
+                                    <li>统一处理支付结果回调和异步通知</li>
+                                    <li>建议在支付页面检测用户是否已安装对应 App，未安装时给出提示</li>
+                                </ul>
+                            </div>
+                            <div class="text-sm"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-wx-600 hover:text-wx-700 font-medium underline underline-offset-2">→ 微信支付 APP 支付文档 ↗</a>　<a href="https://opendocs.alipay.com/open/204/105695" target="_blank" class="text-ali-600 hover:text-ali-700 font-medium underline underline-offset-2">支付宝 APP 支付文档 ↗</a></div>
+                        </div>`;
+                }
+            } else if (step1 === 'hybrid') {
+                if (step2 === 'wx') {
+                    title = '混合开发 + 微信支付 → 桥接微信 SDK';
+                    content = `
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-2 text-green-700 font-medium">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i> 推荐方案：通过 JS Bridge 调用原生微信 SDK
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-slate-200">
+                                <div class="font-medium text-slate-800 mb-2">uni-app 方案</div>
+                                <div class="text-sm text-slate-600 space-y-1">
+                                    <p>使用 <code>uni.requestPayment</code> 或支付插件，内部自动桥接原生 SDK。</p>
+                                    <p>优点：一套代码，多端复用；uni-app 已封装好支付逻辑。</p>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-slate-200">
+                                <div class="font-medium text-slate-800 mb-2">Flutter / React Native 方案</div>
+                                <div class="text-sm text-slate-600 space-y-1">
+                                    <p>使用社区插件：<code>fluwx</code>（Flutter）或 <code>react-native-wechat-lib</code>（RN）</p>
+                                    <p>优点：无需手写原生桥接代码；缺点：需关注插件维护状态。</p>
+                                </div>
+                            </div>
+                            <div class="text-sm"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-wx-600 hover:text-wx-700 font-medium underline underline-offset-2">→ 微信支付 APP 支付官方文档 ↗</a></div>
+                        </div>`;
+                } else if (step2 === 'ali') {
+                    title = '混合开发 + 支付宝 → 桥接支付宝 SDK';
+                    content = `
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-2 text-green-700 font-medium">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i> 推荐方案：通过 JS Bridge 调用原生支付宝 SDK
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-slate-200">
+                                <div class="font-medium text-slate-800 mb-2">uni-app 方案</div>
+                                <div class="text-sm text-slate-600 space-y-1">
+                                    <p>使用 <code>uni.requestPayment</code>，传入 provider: "alipay"。</p>
+                                    <p>uni-app 已内置支付宝支付能力，无需额外配置。</p>
+                                </div>
+                            </div>
+                            <div class="text-sm"><a href="https://opendocs.alipay.com/open/204/105695" target="_blank" class="text-ali-600 hover:text-ali-700 font-medium underline underline-offset-2">→ 查看支付宝 APP 支付官方文档 ↗</a></div>
+                        </div>`;
+                } else {
+                    title = '混合开发 + 双渠道 → 双桥接方案';
+                    content = `
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-2 text-green-700 font-medium">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i> 推荐方案：通过统一支付 API 桥接双 SDK
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-slate-200">
+                                <div class="font-medium text-slate-800 mb-2">uni-app 推荐代码</div>
+                                <pre class="bg-slate-100 rounded-lg p-3 text-xs text-slate-700 overflow-x-auto">uni.requestPayment({
+    provider: order.provider, // 'wxpay' 或 'alipay'
+    orderInfo: order.orderInfo,
+    success: (res) => { /* 成功 */ },
+    fail: (err) => { /* 失败 */ }
+});</pre>
+                            </div>
+                            <div class="text-sm"><a href="https://uniapp.dcloud.net.cn/api/plugins/payment.html" target="_blank" class="text-indigo-600 hover:text-indigo-700 font-medium underline underline-offset-2">→ 查看 uni-app 支付模块官方文档 ↗</a></div>
+                        </div>`;
+                }
+            } else {
+                // pure webview
+                if (step2 === 'wx') {
+                    title = '纯 WebView + 微信支付 → 评估风险后使用 H5 支付';
+                    content = `
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-2 text-yellow-700 font-medium">
+                                <i data-lucide="alert-triangle" class="w-5 h-5"></i> 次优方案：微信 H5 支付（有风险）
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-red-200">
+                                <div class="font-medium text-red-800 mb-2">⚠️ 必须接受的风险</div>
+                                <ul class="text-sm text-red-700 space-y-1 list-disc list-inside">
+                                    <li>iOS 支付完成后无法自动回跳 App，会跳转到外部浏览器</li>
+                                    <li>微信官方明确不建议在 App 中使用 H5 支付</li>
+                                    <li>用户体验较差，可能导致用户流失</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-slate-200">
+                                <div class="font-medium text-slate-800 mb-2">缓解方案</div>
+                                <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside">
+                                    <li>Android 拦截 <code>weixin://wap/pay</code> 唤起微信</li>
+                                    <li>iOS 可在服务端模拟中间请求，直接拿到最终支付地址</li>
+                                    <li>支付回调页通过 Universal Link / App Link 引导用户回 App</li>
+                                    <li>在支付页面提示用户"支付完成后请手动返回"</li>
+                                </ul>
+                            </div>
+                            <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+                                <div class="text-sm text-indigo-700">
+                                    <strong>更建议：</strong>如果条件允许，哪怕是纯 WebView App，也建议通过<a href="https://www.yungouos.com/" target="_blank">YunGouOS</a>等服务商实现原生唤起，或考虑改用二维码扫码支付（Native 支付），虽然多一步操作，但更稳定。
+                                </div>
+                            </div>
+                            <div class="text-sm"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-wx-600 hover:text-wx-700 font-medium underline underline-offset-2">→ 查看微信支付 H5 支付官方文档 ↗</a></div>
+                        </div>`;
+                } else if (step2 === 'ali') {
+                    title = '纯 WebView + 支付宝 → 手机网站支付可用';
+                    content = `
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-2 text-green-700 font-medium">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i> 可行方案：支付宝手机网站支付
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-slate-200">
+                                <div class="font-medium text-slate-800 mb-2">实施要点</div>
+                                <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside">
+                                    <li>WebView 中必须拦截 <code>alipays://</code> 协议唤起支付宝 App</li>
+                                    <li>Android 重写 <code>shouldOverrideUrlLoading</code></li>
+                                    <li>iOS 通过 <code>WKNavigationDelegate</code> 拦截</li>
+                                    <li>未安装支付宝时，新商户会引导下载，需给出友好提示</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-slate-200">
+                                <div class="font-medium text-slate-800 mb-2">用户体验</div>
+                                <div class="text-sm text-slate-600">
+                                    相比微信 H5 支付，支付宝手机网站支付在 WebView 中的体验<strong>好得多</strong>。Android 和 iOS 都能正常唤起支付宝，支付完成后回跳也相对稳定。
+                                </div>
+                            </div>
+                            <div class="text-sm"><a href="https://opendocs.alipay.com/open/203/105285" target="_blank" class="text-ali-600 hover:text-ali-700 font-medium underline underline-offset-2">→ 查看支付宝手机网站支付官方文档 ↗</a></div>
+                        </div>`;
+                } else {
+                    title = '纯 WebView + 双渠道 → 支付宝可用，微信需谨慎';
+                    content = `
+                        <div class="space-y-4">
+                            <div class="bg-white rounded-lg p-4 border border-green-200">
+                                <div class="font-medium text-green-800 mb-2">✅ 支付宝：手机网站支付</div>
+                                <div class="text-sm text-slate-600">可行，体验较好。注意拦截 <code>alipays://</code> 协议。</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-yellow-200">
+                                <div class="font-medium text-yellow-800 mb-2">⚠️ 微信：H5 支付（有风险）</div>
+                                <div class="text-sm text-slate-600">iOS 回跳体验差。建议：① 二维码扫码支付替代；② 使用聚合支付服务商；③ 评估用户流失风险。</div>
+                            </div>
+                            <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+                                <div class="text-sm text-indigo-700">
+                                    <strong>替代方案：</strong>考虑接入聚合支付服务商（如通联支付、拉卡拉、YunGouOS），通过服务商的 SDK 或 H5 页面实现双渠道支付，省去单独对接微信/支付宝的复杂度。
+                                </div>
+                            </div>
+                            <div class="text-sm"><a href="https://pay.weixin.qq.com/doc/v3/merchant/4012791832" target="_blank" class="text-wx-600 hover:text-wx-700 font-medium underline underline-offset-2">→ 微信支付 H5 支付文档 ↗</a>　<a href="https://opendocs.alipay.com/open/203/105285" target="_blank" class="text-ali-600 hover:text-ali-700 font-medium underline underline-offset-2">支付宝手机网站支付文档 ↗</a></div>
+                        </div>`;
+                }
+            }
+
+            document.getElementById('result-title').textContent = title;
+            document.getElementById('result-content').innerHTML = content;
+            lucide.createIcons();
+        }
+
+        function resetDecision() {
+            decisionState = { step1: null, step2: null };
+            document.querySelectorAll('.decision-step').forEach(step => step.classList.add('hidden'));
+            document.querySelector('.decision-step[data-step="1"]').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

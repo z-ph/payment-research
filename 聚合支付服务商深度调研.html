@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聚合支付服务商（第四方支付）深度调研</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans SC', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: { 50: '#eef2ff', 100: '#e0e7ff', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        success: '#10b981',
+                        slate: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Noto Sans SC', 'Inter', sans-serif; background: #f8fafc; }
+        .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); }
+        .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15); }
+        .expand-content { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .expand-content.open { max-height: 1000px; }
+        .tab-active { background: white; color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tab-inactive { background: transparent; color: #64748b; }
+        .tab-inactive:hover { color: #334155; }
+        .code-block { font-family: 'Menlo', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.6; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .comparison-table th { background: #f1f5f9; font-weight: 600; text-align: left; padding: 12px 16px; border-bottom: 2px solid #e2e8f0; }
+        .comparison-table td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+        .comparison-table tr:hover td { background: #f8fafc; }
+        .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50">
+
+    <!-- 顶部导航 -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="layers" class="w-6 h-6 text-primary-600"></i>
+                <span class="font-bold text-lg text-slate-800">聚合支付服务商调研</span>
+            </div>
+            <div class="hidden md:flex items-center gap-1 text-sm">
+                <a href="#what" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">是什么</a>
+                <a href="#model" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">模式</a>
+                <a href="#compare" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">对比</a>
+                <a href="#risk" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">合规</a>
+                <a href="#select" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">选型</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 英雄区 -->
+    <section id="what" class="pt-28 pb-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-12">
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-full text-sm font-medium mb-6">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    第四方支付（聚合支付）深度调研
+                </div>
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">
+                    聚合支付服务商
+                    <span class="gradient-text">是什么？</span>
+                </h1>
+                <p class="text-lg text-slate-500 max-w-2xl mx-auto">
+                    一套完整的聚合支付服务商定义、角色定位、商业模式、主要参与者、费率对比与合规风险分析。
+                </p>
+            </div>
+
+            <!-- 核心定义卡片 -->
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
+                    <div class="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center mb-4">
+                        <i data-lucide="layers" class="w-6 h-6 text-primary-600"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">定义</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        聚合支付（又称<strong>第四方支付</strong>），是相对于第三方支付而言的概念。通过聚合多种第三方支付平台、合作银行及其他支付工具，为商户提供<strong>统一接口</strong>的综合支付服务。
+                    </p>
+                    <div class="mt-3 text-sm text-primary-600 font-medium">
+                        <a href="https://www.pospos.com/news/relationship-bettween-payment-forthparty/" target="_blank" class="underline underline-offset-2 hover:text-primary-800">→ 什么是第四方支付 ↗</a>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
+                    <div class="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center mb-4">
+                        <i data-lucide="shield-check" class="w-6 h-6 text-yellow-600"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">核心定位</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        <strong>不碰资金、不碰清算</strong>。聚合支付服务商<strong>不具备央行支付牌照</strong>，不能从事资金结算。仅提供支付环节的信息流转、技术对接、商户操作承载和统一对账服务。
+                    </p>
+                    <div class="mt-3 text-sm text-yellow-700 font-medium">
+                        <a href="https://www.weiyangx.com/348613.html" target="_blank" class="underline underline-offset-2 hover:text-yellow-900">→ 央行对聚合支付的定位 ↗</a>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
+                    <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mb-4">
+                        <i data-lucide="git-compare" class="w-6 h-6 text-green-600"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">与第三方支付的区别</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        <strong>第三方支付</strong>（微信、支付宝、银联）提供<strong>资金清算通道</strong>，有央行支付牌照。<br>
+                        <strong>第四方支付</strong>提供<strong>技术集成服务</strong>，不碰资金，是"连接支付渠道的一根绳子"。
+                    </p>
+                    <div class="mt-3 text-sm text-green-700 font-medium">
+                        <a href="https://nanyang.11467.com/info/23958083.htm" target="_blank" class="underline underline-offset-2 hover:text-green-900">→ 三方与四方区别详解 ↗</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 角色与价值 -->
+    <section id="model" class="py-12 px-4 bg-white border-y border-slate-100">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="git-branch" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">聚合支付的角色与商业模式</h2>
+            </div>
+
+            <!-- 角色关系图 -->
+            <div class="bg-slate-50 rounded-2xl p-6 md:p-8 mb-8 border border-slate-100">
+                <div class="flex flex-wrap items-center justify-center gap-4 md:gap-8">
+                    <div class="text-center">
+                        <div class="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-2">
+                            <i data-lucide="users" class="w-8 h-8 text-blue-600"></i>
+                        </div>
+                        <div class="font-semibold text-sm">消费者 / 用户</div>
+                        <div class="text-xs text-slate-400">扫码/支付</div>
+                    </div>
+                    <div class="text-slate-300 text-2xl">→</div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 rounded-2xl bg-primary-100 flex items-center justify-center mx-auto mb-2">
+                            <i data-lucide="layers" class="w-8 h-8 text-primary-600"></i>
+                        </div>
+                        <div class="font-semibold text-sm">聚合支付服务商</div>
+                        <div class="text-xs text-slate-400">第四方</div>
+                    </div>
+                    <div class="text-slate-300 text-2xl">→</div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-2">
+                            <i data-lucide="credit-card" class="w-8 h-8 text-slate-600"></i>
+                        </div>
+                        <div class="font-semibold text-sm">第三方支付</div>
+                        <div class="text-xs text-slate-400">微信 / 支付宝 / 银联</div>
+                    </div>
+                    <div class="text-slate-300 text-2xl">→</div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mx-auto mb-2">
+                            <i data-lucide="building-2" class="w-8 h-8 text-green-600"></i>
+                        </div>
+                        <div class="font-semibold text-sm">商户</div>
+                        <div class="text-xs text-slate-400">收款/对账</div>
+                    </div>
+                </div>
+                <div class="mt-6 text-center text-sm text-slate-500">
+                    聚合支付服务商连接消费者、第三方支付平台和商户，实现"一码多付"、统一接口、统一对账
+                </div>
+            </div>
+
+            <!-- 三大核心价值 -->
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <i data-lucide="code-2" class="w-4 h-4 text-blue-600"></i>
+                        </div>
+                        <h3 class="font-semibold">统一技术接口</h3>
+                    </div>
+                    <p class="text-sm text-slate-600">
+                        一套 API 对接所有支付渠道（微信、支付宝、银联、云闪付等），无需分别对接每个平台的 SDK 和文档。大幅降低开发成本和维护复杂度。
+                    </p>
+                </div>
+
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                            <i data-lucide="qr-code" class="w-4 h-4 text-orange-600"></i>
+                        </div>
+                        <h3 class="font-semibold">一码多付 / 统一收银</h3>
+                    </div>
+                    <p class="text-sm text-slate-600">
+                        一个收款码或一个收银页面，消费者可自行选择微信、支付宝、银行卡等任意支付方式。极大提升支付转化率，减少消费者流失。
+                    </p>
+                </div>
+
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                            <i data-lucide="file-text" class="w-4 h-4 text-green-600"></i>
+                        </div>
+                        <h3 class="font-semibold">统一对账 & 数据分析</h3>
+                    </div>
+                    <p class="text-sm text-slate-600">
+                        聚合支付平台将所有渠道的交易数据统一汇总，提供统一的对账报表、交易数据分析、退款管理、分账等功能。免去商户手动汇总多个后台数据的痛苦。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 主要聚合支付服务商对比 -->
+    <section id="compare" class="py-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="scale" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">主要聚合支付服务商全景对比</h2>
+            </div>
+
+            <!-- 分类标签 -->
+            <div class="flex gap-1 bg-slate-100 p-1 rounded-xl mb-6 w-fit">
+                <button onclick="switchCategory('all')" id="cat-all" class="tab-active px-4 py-2 rounded-lg text-sm font-medium transition-all">全部</button>
+                <button onclick="switchCategory('licensed')" id="cat-licensed" class="tab-inactive px-4 py-2 rounded-lg text-sm font-medium transition-all">持牌收单机构</button>
+                <button onclick="switchCategory('tech')" id="cat-tech" class="tab-inactive px-4 py-2 rounded-lg text-sm font-medium transition-all">技术服务商</button>
+                <button onclick="switchCategory('personal')" id="cat-personal" class="tab-inactive px-4 py-2 rounded-lg text-sm font-medium transition-all">个人/小站长方案</button>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4" id="provider-grid">
+                <!-- 持牌机构 -->
+                <div class="provider-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-cat="licensed">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                    <i data-lucide="landmark" class="w-4 h-4 text-blue-600"></i>
+                                </div>
+                                <span class="font-semibold">通联支付</span>
+                            </div>
+                            <span class="tag bg-blue-50 text-blue-700">持牌收单</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">成立于2008年，中国支付清算协会唯一的副会长级第三方支付企业，年交易量万亿级别。</p>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">支持渠道</span><span class="text-slate-800">微信/支付宝/银联/京东白条</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">费率参考</span><span class="text-slate-800">0.38% - 0.6%</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">资质要求</span><span class="text-slate-800">企业/个体户</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">到账方式</span><span class="text-slate-800">D+1 / T+1</span></div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100">
+                            <a href="https://www.tlpay.com/" target="_blank" class="text-sm text-blue-600 font-medium underline underline-offset-2 hover:text-blue-800">→ 通联支付官网 ↗</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="provider-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-cat="licensed">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                    <i data-lucide="landmark" class="w-4 h-4 text-blue-600"></i>
+                                </div>
+                                <span class="font-semibold">拉卡拉</span>
+                            </div>
+                            <span class="tag bg-blue-50 text-blue-700">持牌收单</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">国内第一家从事三方支付服务的POS机品牌，2019年A股上市。覆盖POS收单、扫码支付、线上支付等全场景。</p>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">支持渠道</span><span class="text-slate-800">微信/支付宝/银行卡/云闪付</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">费率参考</span><span class="text-slate-800">0.38% - 1.6%</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">资质要求</span><span class="text-slate-800">企业/个体户</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">到账方式</span><span class="text-slate-800">D+1</span></div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100">
+                            <a href="https://www.lakala.com/" target="_blank" class="text-sm text-blue-600 font-medium underline underline-offset-2 hover:text-blue-800">→ 拉卡拉官网 ↗</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="provider-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-cat="licensed">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                    <i data-lucide="landmark" class="w-4 h-4 text-blue-600"></i>
+                                </div>
+                                <span class="font-semibold">汇付天下</span>
+                            </div>
+                            <span class="tag bg-blue-50 text-blue-700">持牌收单</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">中国领先的互联网支付企业，由人民银行直接监管，支持多种支付渠道和灵活的费率方案。</p>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">支持渠道</span><span class="text-slate-800">微信/支付宝/银联/银行直连</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">费率参考</span><span class="text-slate-800">0.35% - 0.45%</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">资质要求</span><span class="text-slate-800">企业/个体户</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">到账方式</span><span class="text-slate-800">D+1 / T+1</span></div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100">
+                            <a href="https://www.chinapnr.com/" target="_blank" class="text-sm text-blue-600 font-medium underline underline-offset-2 hover:text-blue-800">→ 汇付天下官网 ↗</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="provider-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-cat="licensed">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                    <i data-lucide="landmark" class="w-4 h-4 text-blue-600"></i>
+                                </div>
+                                <span class="font-semibold">易宝支付</span>
+                            </div>
+                            <span class="tag bg-blue-50 text-blue-700">持牌收单</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">老牌第三方支付机构，拥有央行支付牌照，支持银行卡收单、互联网支付、移动电话支付等资质。</p>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">支持渠道</span><span class="text-slate-800">微信/支付宝/银联/网银</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">费率参考</span><span class="text-slate-800">0.38% - 0.6%</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">资质要求</span><span class="text-slate-800">企业/个体户</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">到账方式</span><span class="text-slate-800">T+1</span></div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100">
+                            <a href="https://www.yeepay.com/" target="_blank" class="text-sm text-blue-600 font-medium underline underline-offset-2 hover:text-blue-800">→ 易宝支付官网 ↗</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 技术服务商 -->
+                <div class="provider-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-cat="tech">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center">
+                                    <i data-lucide="code" class="w-4 h-4 text-primary-600"></i>
+                                </div>
+                                <span class="font-semibold">Ping++</span>
+                            </div>
+                            <span class="tag bg-primary-50 text-primary-700">技术服务商</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">标准化支付产品及全面的支付渠道技术服务商。阳光支付，只负责信息处理，不参与资金清算。</p>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">支持渠道</span><span class="text-slate-800">微信/支付宝/银联/百度钱包</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">费率参考</span><span class="text-slate-800">各渠道官方费率</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">资质要求</span><span class="text-slate-800">企业/个体户</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">技术特色</span><span class="text-slate-800">SDK/API 统一封装</span></div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100">
+                            <a href="https://www.pingxx.com/" target="_blank" class="text-sm text-primary-600 font-medium underline underline-offset-2 hover:text-primary-800">→ Ping++ 官网 ↗</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="provider-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-cat="tech">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center">
+                                    <i data-lucide="code" class="w-4 h-4 text-primary-600"></i>
+                                </div>
+                                <span class="font-semibold">YunGouOS</span>
+                            </div>
+                            <span class="tag bg-primary-50 text-primary-700">技术服务商</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">微信/支付宝官方授权合作伙伴，10年从业支付渠道服务商。支持个人、个体户、企业签约开户。</p>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">支持渠道</span><span class="text-slate-800">微信/支付宝/银联/银行卡</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">费率参考</span><span class="text-slate-800">微信 0.38% + 平台服务费</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">资质要求</span><span class="text-slate-800 font-medium text-green-600">✅ 支持个人</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">到账方式</span><span class="text-slate-800">微信官方 D+1 结算</span></div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100">
+                            <a href="https://www.yungouos.com/" target="_blank" class="text-sm text-primary-600 font-medium underline underline-offset-2 hover:text-primary-800">→ YunGouOS 官网 ↗</a>　<a href="https://github.com/YunGouOS/YunGouOS-PAY-SDK" target="_blank" class="text-sm text-slate-500 underline underline-offset-2 hover:text-slate-700">GitHub ↗</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="provider-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-cat="tech">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center">
+                                    <i data-lucide="code" class="w-4 h-4 text-primary-600"></i>
+                                </div>
+                                <span class="font-semibold">蓝兔支付</span>
+                            </div>
+                            <span class="tag bg-primary-50 text-primary-700">技术服务商</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">专业聚合支付平台，专注为开发者、电商商户、创业团队和内容创作者提供快捷、安全的在线收款解决方案。</p>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">支持渠道</span><span class="text-slate-800">微信/支付宝/银联</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">费率参考</span><span class="text-slate-800">咨询客服</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">资质要求</span><span class="text-slate-800">企业/个体户</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">特色</span><span class="text-slate-800">开发者友好</span></div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100">
+                            <a href="https://www.ltzf.cn/" target="_blank" class="text-sm text-primary-600 font-medium underline underline-offset-2 hover:text-primary-800">→ 蓝兔支付官网 ↗</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="provider-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-cat="tech">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center">
+                                    <i data-lucide="code" class="w-4 h-4 text-primary-600"></i>
+                                </div>
+                                <span class="font-semibold">钱方 (QianFang)</span>
+                            </div>
+                            <span class="tag bg-primary-50 text-primary-700">技术服务商</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">国内领先的移动支付与商户收单服务提供商，致力于中小企业、线下门店及电商平台提供多场景支付解决方案。</p>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">支持渠道</span><span class="text-slate-800">微信/支付宝/银行卡</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">费率参考</span><span class="text-slate-800">咨询客服</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">资质要求</span><span class="text-slate-800">企业/个体户</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">特色</span><span class="text-slate-800">线下门店场景强</span></div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100">
+                            <a href="https://www.qfpay.com/" target="_blank" class="text-sm text-primary-600 font-medium underline underline-offset-2 hover:text-primary-800">→ 钱方官网 ↗</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 个人/小站长方案 -->
+                <div class="provider-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-cat="personal">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-yellow-100 flex items-center justify-center">
+                                    <i data-lucide="user" class="w-4 h-4 text-yellow-600"></i>
+                                </div>
+                                <span class="font-semibold">易支付</span>
+                            </div>
+                            <span class="tag bg-yellow-50 text-yellow-700">个人方案</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">面向个人站长的免签支付平台，通过商户进件模式接入微信/支付宝官方备案商户，无需营业执照。</p>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">支持渠道</span><span class="text-slate-800">微信/支付宝/QQ/京东</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">费率参考</span><span class="text-slate-800">开户费 ¥88 + 1.0% 平台费</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">资质要求</span><span class="text-slate-800 font-medium text-green-600">✅ 个人可用</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">到账方式</span><span class="text-slate-800">官方 D+1 结算</span></div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100">
+                            <a href="https://www.8-pay.cn/" target="_blank" class="text-sm text-yellow-600 font-medium underline underline-offset-2 hover:text-yellow-800">→ 易支付官网 ↗</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="provider-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-cat="personal">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-yellow-100 flex items-center justify-center">
+                                    <i data-lucide="user" class="w-4 h-4 text-yellow-600"></i>
+                                </div>
+                                <span class="font-semibold">V免签 / A免签</span>
+                            </div>
+                            <span class="tag bg-yellow-50 text-yellow-700">个人方案</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">开源免签方案，通过监听手机微信/支付宝的到账通知（通知栏权限）实现自动回调。无需任何商户资质。</p>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">支持渠道</span><span class="text-slate-800">微信/支付宝</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">费率参考</span><span class="text-slate-800">0%（仅需服务器成本）</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">资质要求</span><span class="text-slate-800 font-medium text-green-600">✅ 零门槛</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">⚠️ 风险</span><span class="text-slate-800 font-medium text-red-500">稳定性差 / 易封号</span></div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100">
+                            <a href="https://github.com/zwc365/A-wxpay" target="_blank" class="text-sm text-yellow-600 font-medium underline underline-offset-2 hover:text-yellow-800">→ A免签 GitHub ↗</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="provider-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover" data-cat="personal">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-yellow-100 flex items-center justify-center">
+                                    <i data-lucide="globe" class="w-4 h-4 text-yellow-600"></i>
+                                </div>
+                                <span class="font-semibold">LemonSqueezy</span>
+                            </div>
+                            <span class="tag bg-yellow-50 text-yellow-700">海外方案</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">专为独立开发者、数字创作者和小型团队设计的全方位电商平台。支持全球信用卡、PayPal 等支付方式。</p>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">支持渠道</span><span class="text-slate-800">信用卡/PayPal/Apple Pay</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">费率参考</span><span class="text-slate-800">5% + 手续费</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">资质要求</span><span class="text-slate-800 font-medium text-green-600">✅ 个人可用</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">特色</span><span class="text-slate-800">海外/数字产品</span></div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100">
+                            <a href="https://www.lemonsqueezy.com/" target="_blank" class="text-sm text-yellow-600 font-medium underline underline-offset-2 hover:text-yellow-800">→ LemonSqueezy 官网 ↗</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 费率对比表 -->
+    <section class="py-12 px-4 bg-white border-y border-slate-100">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="coins" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">费率对比一览</h2>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="comparison-table w-full text-sm">
+                    <thead>
+                        <tr>
+                            <th>服务商</th>
+                            <th>类型</th>
+                            <th>微信费率</th>
+                            <th>支付宝费率</th>
+                            <th>其他费用</th>
+                            <th>资质要求</th>
+                            <th>到账</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-medium">微信支付（官方）</td>
+                            <td><span class="tag bg-blue-50 text-blue-700">官方</span></td>
+                            <td>0.6%（标准）</td>
+                            <td>—</td>
+                            <td>无开户费</td>
+                            <td>企业/个体户</td>
+                            <td>D+1</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">支付宝（官方）</td>
+                            <td><span class="tag bg-blue-50 text-blue-700">官方</span></td>
+                            <td>—</td>
+                            <td>0.6%（标准）</td>
+                            <td>无开户费</td>
+                            <td>企业/个体户</td>
+                            <td>实时</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">通联支付</td>
+                            <td><span class="tag bg-blue-50 text-blue-700">持牌</span></td>
+                            <td>0.38% - 0.45%</td>
+                            <td>0.38% - 0.45%</td>
+                            <td>POS 设备费</td>
+                            <td>企业/个体户</td>
+                            <td>D+1 / T+1</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">拉卡拉</td>
+                            <td><span class="tag bg-blue-50 text-blue-700">持牌</span></td>
+                            <td>0.38% - 0.6%</td>
+                            <td>0.38% - 0.6%</td>
+                            <td>POS 月租/购机</td>
+                            <td>企业/个体户</td>
+                            <td>D+1</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">汇付天下</td>
+                            <td><span class="tag bg-blue-50 text-blue-700">持牌</span></td>
+                            <td>0.45%</td>
+                            <td>0.45%</td>
+                            <td>设备/服务费</td>
+                            <td>企业/个体户</td>
+                            <td>D+1 / T+1</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">YunGouOS</td>
+                            <td><span class="tag bg-primary-50 text-primary-700">技术</span></td>
+                            <td>0.38% + 平台费</td>
+                            <td>0.6% + 平台费</td>
+                            <td>开户认证费 ¥200 起</td>
+                            <td class="font-medium text-green-600">✅ 个人可用</td>
+                            <td>微信官方 D+1</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">Ping++</td>
+                            <td><span class="tag bg-primary-50 text-primary-700">技术</span></td>
+                            <td colspan="2">各渠道官方费率</td>
+                            <td>技术服务费</td>
+                            <td>企业/个体户</td>
+                            <td>各渠道自有</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">易支付</td>
+                            <td><span class="tag bg-yellow-50 text-yellow-700">个人</span></td>
+                            <td>0.6% + 1.0%</td>
+                            <td>0.6% + 1.0%</td>
+                            <td>开户费 ¥88</td>
+                            <td class="font-medium text-green-600">✅ 个人可用</td>
+                            <td>官方 D+1</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">V免签 / A免签</td>
+                            <td><span class="tag bg-yellow-50 text-yellow-700">个人</span></td>
+                            <td colspan="2">个人转账（0%）</td>
+                            <td>服务器成本</td>
+                            <td class="font-medium text-green-600">✅ 零门槛</td>
+                            <td>实时到账</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">LemonSqueezy</td>
+                            <td><span class="tag bg-yellow-50 text-yellow-700">海外</span></td>
+                            <td colspan="2">5% + 支付手续费</td>
+                            <td>无开户费</td>
+                            <td class="font-medium text-green-600">✅ 个人可用</td>
+                            <td>T+7 / T+14</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-xs text-slate-400 mt-3">* 费率仅供参考，实际以各平台官方报价为准。费率可能因行业、交易量、商户等级等因素浮动。</p>
+        </div>
+    </section>
+
+    <!-- 合规红线 -->
+    <section id="risk" class="py-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="shield-alert" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">合规红线：聚合支付必须知道的"四个不得"</h2>
+            </div>
+
+            <div class="bg-red-50 rounded-2xl border border-red-200 p-6 mb-6">
+                <div class="flex items-start gap-3">
+                    <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600 mt-0.5 flex-shrink-0"></i>
+                    <div>
+                        <div class="font-bold text-red-800 mb-2">央行明确划定聚合支付"四个不得"红线</div>
+                        <p class="text-sm text-red-700 mb-3">
+                            根据《中国人民银行支付结算司关于开展违规"聚合支付"服务清理整治工作的通知》，聚合支付定位于<strong>"收单外包机构"</strong>，不得从事以下行为：
+                        </p>
+                        <div class="grid md:grid-cols-2 gap-3">
+                            <div class="bg-white rounded-lg p-3 border border-red-100">
+                                <div class="font-medium text-red-800 mb-1">❌ 不得经手结算资金</div>
+                                <div class="text-xs text-red-600">不得以任何形式经手特约商户结算资金，从事或变相从事特约商户资金结算（即"二清"）。</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 border border-red-100">
+                                <div class="font-medium text-red-800 mb-1">❌ 不得伪造/篡改交易信息</div>
+                                <div class="text-xs text-red-600">不得伪造、篡改或隐匿交易信息。</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 border border-red-100">
+                                <div class="font-medium text-red-800 mb-1">❌ 不得存储敏感信息</div>
+                                <div class="text-xs text-red-600">不得采集、留存特约商户和消费者的敏感信息。</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 border border-red-100">
+                                <div class="font-medium text-red-800 mb-1">❌ 不得从事核心业务</div>
+                                <div class="text-xs text-red-600">不得以任何形式从事或变相从事特约商户资质审核、受理协议签订、资金结算、风险监测等收单核心业务。</div>
+                            </div>
+                        </div>
+                        <div class="mt-3 text-sm">
+                            <a href="https://www.weiyangx.com/348613.html" target="_blank" class="text-red-700 font-medium underline underline-offset-2 hover:text-red-900">→ 查看央行政策原文 ↗</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 什么是二清 -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                        <i data-lucide="alert-circle" class="w-5 h-5 text-red-500"></i>
+                        什么是"二清"？为什么危险？
+                    </h3>
+                    <p class="text-sm text-slate-600 leading-relaxed mb-3">
+                        <strong>"二清"</strong>是指没有获得央行支付业务许可的单位或个人，在持牌收单机构的支持下<strong>实际从事支付业务和资金清算</strong>的模式。
+                    </p>
+                    <p class="text-sm text-slate-600 leading-relaxed mb-3">
+                        典型流程：用户付款 → 资金先到聚合平台账户 → 平台再分发给商户。这就是<strong>二次清算</strong>。
+                    </p>
+                    <div class="bg-red-50 rounded-lg p-3 border border-red-100">
+                        <div class="font-medium text-red-800 text-sm mb-1">⚠️ 风险</div>
+                        <ul class="text-xs text-red-700 space-y-1 list-disc list-inside">
+                            <li>资金沉淀在平台，平台跑路则商户资金损失</li>
+                            <li>涉嫌非法经营罪</li>
+                            <li>不受银行监管保护</li>
+                            <li>一旦被查，平台关停，商户资金冻结</li>
+                        </ul>
+                    </div>
+                    <div class="mt-3 text-sm">
+                        <a href="https://www.weiyangx.com/348613.html" target="_blank" class="text-red-600 font-medium underline underline-offset-2 hover:text-red-800">→ 第四方支付与非法经营罪 ↗</a>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-green-500"></i>
+                        如何识别安全的聚合支付？
+                    </h3>
+                    <div class="space-y-3 text-sm text-slate-600">
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="check" class="w-3 h-3 text-green-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-slate-800">资金是否官方直达？</div>
+                                <div>安全的聚合支付：资金由微信/支付宝<strong>官方直接结算</strong>到商户银行卡，不经过平台中转。</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="check" class="w-3 h-3 text-green-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-slate-800">平台是否有支付牌照？</div>
+                                <div>持牌收单机构（通联、拉卡拉、汇付天下等）有央行支付牌照，受监管保护。纯技术服务商（Ping++）不碰资金。</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="check" class="w-3 h-3 text-green-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-slate-800">到账路径是否清晰？</div>
+                                <div>资金应直接进入商户自己的银行账户，而非"先进入平台再提现"。</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="check" class="w-3 h-3 text-green-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-slate-800">是否有官方合作伙伴资质？</div>
+                                <div>如 YunGouOS 是微信/支付宝官方授权合作伙伴，签约后商户号由微信/支付宝直接下发。</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 选型建议 -->
+    <section id="select" class="py-12 px-4 bg-white border-y border-slate-100">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <i data-lucide="git-compare" class="w-5 h-5 text-slate-400"></i>
+                <h2 class="text-2xl font-bold">选型建议：聚合支付 vs 官方直接对接</h2>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-green-500"></i>
+                        适合选择聚合支付的场景
+                    </h3>
+                    <div class="space-y-3 text-sm text-slate-600">
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="check" class="w-3 h-3 text-green-600"></i>
+                            </div>
+                            <div><strong class="text-slate-800">小微商户 / 个人开发者</strong>：没有营业执照，无法直接申请微信/支付宝商户号（如 YunGouOS、易支付支持个人开户）</div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="check" class="w-3 h-3 text-green-600"></i>
+                            </div>
+                            <div><strong class="text-slate-800">需要快速上线</strong>：不想花数周申请资质、走审核流程，希望一天内接入支付</div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="check" class="w-3 h-3 text-green-600"></i>
+                            </div>
+                            <div><strong class="text-slate-800">多渠道统一需求</strong>：需要同时接入微信、支付宝、银联、京东支付等，不想分别对接每个平台的 SDK 和文档</div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="check" class="w-3 h-3 text-green-600"></i>
+                            </div>
+                            <div><strong class="text-slate-800">需要统一对账</strong>：多平台交易数据汇总、统一报表、自动分账、退款管理</div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="check" class="w-3 h-3 text-green-600"></i>
+                            </div>
+                            <div><strong class="text-slate-800">线下门店场景</strong>：需要 POS 机、聚合收款码、扫码枪等硬件支持（通联、拉卡拉、钱方）</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                        <i data-lucide="x-circle" class="w-5 h-5 text-red-500"></i>
+                        建议直接对接官方支付的场景
+                    </h3>
+                    <div class="space-y-3 text-sm text-slate-600">
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="x" class="w-3 h-3 text-red-600"></i>
+                            </div>
+                            <div><strong class="text-slate-800">大型商户 / 高交易量</strong>：交易量大时，通过聚合支付服务商额外收取的平台服务费会显著增加成本。直接对接官方可谈更低费率</div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="x" class="w-3 h-3 text-red-600"></i>
+                            </div>
+                            <div><strong class="text-slate-800">对资金安全极度敏感</strong>：需要完全掌控资金流转路径，不接受任何中间环节</div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="x" class="w-3 h-3 text-red-600"></i>
+                            </div>
+                            <div><strong class="text-slate-800">有完整技术团队</strong>：有能力分别对接微信、支付宝官方 SDK，维护各平台的更新</div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="x" class="w-3 h-3 text-red-600"></i>
+                            </div>
+                            <div><strong class="text-slate-800">需要深度定制化</strong>：需要利用微信/支付宝的高级营销工具（如微信分账、红包、优惠券、花呗分期等），聚合平台可能不支持或滞后</div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <div class="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="x" class="w-3 h-3 text-red-600"></i>
+                            </div>
+                            <div><strong class="text-slate-800">已有营业执照</strong>：企业/个体户已有资质，直接申请官方商户号的门槛并不高</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 决策对比表 -->
+            <div class="overflow-x-auto">
+                <table class="comparison-table w-full text-sm">
+                    <thead>
+                        <tr>
+                            <th>对比维度</th>
+                            <th>官方直接对接（微信+支付宝）</th>
+                            <th>聚合支付服务商</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-medium">接入复杂度</td>
+                            <td>高（需分别对接两个平台 SDK、文档、审核）</td>
+                            <td class="text-green-600 font-medium">低（一套 API 覆盖所有渠道）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">资质要求</td>
+                            <td>企业/个体户 + ICP 备案</td>
+                            <td class="text-green-600 font-medium">部分平台支持个人（如 YunGouOS）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">上线速度</td>
+                            <td>慢（申请审核 1-4 周）</td>
+                            <td class="text-green-600 font-medium">快（最快当天可用）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">费率</td>
+                            <td>微信 0.6% / 支付宝 0.6%（标准）</td>
+                            <td>可能更低（如 0.38%）或更高（加平台服务费）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">资金安全性</td>
+                            <td class="text-green-600 font-medium">最高（官方直达，无中间环节）</td>
+                            <td>取决于平台（选"不碰资金"的才安全）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">统一对账</td>
+                            <td>无（需分别登录微信/支付宝后台）</td>
+                            <td class="text-green-600 font-medium">有（统一报表、统一退款）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">高级功能</td>
+                            <td class="text-green-600 font-medium">最全（分账、红包、营销工具等）</td>
+                            <td>有限（部分平台不支持或滞后）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">合规风险</td>
+                            <td class="text-green-600 font-medium">最低（官方直连，受央行保护）</td>
+                            <td>需注意（避免"二清"平台）</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">技术维护</td>
+                            <td>需自行跟进各平台 API 变更</td>
+                            <td class="text-green-600 font-medium">平台统一维护，SDK 自动更新</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">客服支持</td>
+                            <td>官方客服（响应慢）</td>
+                            <td class="text-green-600 font-medium">专属客服（响应快）</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- 底部总结 -->
+    <section class="py-12 px-4 bg-slate-900 text-white">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                        <i data-lucide="target" class="w-5 h-5 text-primary-400"></i>
+                        核心结论
+                    </h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        聚合支付服务商是<strong>连接第三方支付与商户的桥梁</strong>，核心价值是"统一接口、一码多付、统一对账"。选择时需重点关注<strong>资金是否官方直达</strong>（避免二清），以及<strong>平台是否持有牌照或官方授权</strong>。
+                    </p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                        <i data-lucide="lightbulb" class="w-5 h-5 text-yellow-400"></i>
+                        选型建议
+                    </h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        <strong>小微/个人</strong>：选 YunGouOS、易支付（官方合作伙伴模式，资金安全）<br>
+                        <strong>企业/快速上线</strong>：选通联支付、拉卡拉（持牌机构，费率低）<br>
+                        <strong>技术优先</strong>：选 Ping++（纯技术封装，不碰资金）<br>
+                        <strong>海外/数字产品</strong>：选 LemonSqueezy、Stripe
+                    </p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                        <i data-lucide="bookmark" class="w-5 h-5 text-green-400"></i>
+                        参考文档
+                    </h3>
+                    <div class="text-slate-400 text-sm space-y-1">
+                        <p>• <a href="https://www.pospos.com/news/relationship-bettween-payment-forthparty/" target="_blank" class="text-green-400 hover:text-green-300 underline underline-offset-2">第三方支付与第四方服务商关系 ↗</a></p>
+                        <p>• <a href="https://www.weiyangx.com/348613.html" target="_blank" class="text-green-400 hover:text-green-300 underline underline-offset-2">第四方支付与合规红线 ↗</a></p>
+                        <p>• <a href="https://nanyang.11467.com/info/23958083.htm" target="_blank" class="text-green-400 hover:text-green-300 underline underline-offset-2">三方与四方支付区别 ↗</a></p>
+                        <p>• <a href="https://m.mpaypass.com.cn/news/202304/14171112.html" target="_blank" class="text-green-400 hover:text-green-300 underline underline-offset-2">聚合支付三大体系详解 ↗</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // 初始化 Lucide icons
+        lucide.createIcons();
+
+        // 分类切换
+        function switchCategory(type) {
+            document.querySelectorAll('.provider-card').forEach(card => {
+                if (type === 'all' || card.dataset.cat === type) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            ['all', 'licensed', 'tech', 'personal'].forEach(t => {
+                const btn = document.getElementById('cat-' + t);
+                if (t === type) {
+                    btn.classList.remove('tab-inactive');
+                    btn.classList.add('tab-active');
+                } else {
+                    btn.classList.remove('tab-active');
+                    btn.classList.add('tab-inactive');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
